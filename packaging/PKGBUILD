@@ -1,0 +1,49 @@
+# Maintainer: lev
+# GTK4 / libadwaita native shell (cargo release sispace-gtk; no React webview).
+pkgname=sispace-gtk
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="SISpace GTK4 desktop — harness, VTE panes, SISwarm (sispace-gtk)"
+arch=('x86_64')
+url="https://github.com/lev/sispace"
+license=('MIT')
+depends=(
+  'gtk4'
+  'libadwaita'
+  'vte4'
+  'glib2'
+  'nodejs'
+)
+makedepends=(
+  'rust'
+  'cargo'
+  'npm'
+)
+optdepends=(
+  'hyprland: terminal focus integration'
+  'obsidian: vault notes via REST API'
+  'kitty: optional external terminal'
+)
+# In-tree build: run makepkg from packaging/ with repo as parent (see packaging/README).
+options=('!strip')
+source=()
+sha256sums=()
+
+build() {
+  cd "${srcdir}/.."
+  export CARGO_TARGET_DIR="${srcdir}/../target"
+  cargo build --release -p sispace-gtk
+  cd cli
+  npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+  npm run build
+}
+
+package() {
+  cd "${srcdir}/.."
+  install -Dm755 "${srcdir}/../target/release/sispace-gtk" "${pkgdir}/usr/bin/sispace-gtk"
+  install -dm755 "${pkgdir}/usr/share/sispace/cursorsi"
+  cp -a cli/bin "${pkgdir}/usr/share/sispace/cursorsi/"
+  cp -a cli/dist "${pkgdir}/usr/share/sispace/cursorsi/"
+  install -Dm644 cli/package.json "${pkgdir}/usr/share/sispace/cursorsi/package.json"
+  install -Dm755 "${srcdir}/../cli/bin/cursorsi.mjs" "${pkgdir}/usr/bin/cursorsi"
+}

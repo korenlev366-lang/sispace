@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SISpace">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e222a"/>
+      <stop offset="100%" stop-color="#282c34"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e5c07b"/>
+      <stop offset="55%" stop-color="#56b6c2"/>
+      <stop offset="100%" stop-color="#98c379"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="url(#bg)"/>
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="none" stroke="#e5c07b" stroke-width="6" opacity="0.85"/>
+  <path d="M72 176V80h28c22 0 36 12 36 32s-14 32-36 32H96v32H72zm24-52h4c10 0 16-5 16-14s-6-14-16-14h-4v28z" fill="#e5c07b"/>
+  <path d="M156 176V80h52v24h-28v20h24v24h-24v28h-24z" fill="#56b6c2"/>
+  <circle cx="200" cy="64" r="10" fill="#98c379"/>
+</svg>

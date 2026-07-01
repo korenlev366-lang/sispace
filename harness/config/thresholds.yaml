@@ -1,0 +1,37 @@
+# Phase 7 grading thresholds.
+# This file is documentation-only until a future phase adds an executable grader.
+
+score_model:
+  total: 100
+  categories:
+    evidence_quality: 20
+    generality: 15
+    layer_fit: 10
+    safety: 15
+    backtest_result: 15
+    contradiction_check: 10
+    cost_control: 10
+    reversibility: 5
+
+decisions:
+  accept:
+    min: 90
+    max: 100
+  human_review:
+    min: 80
+    max: 89
+  revise:
+    min: 65
+    max: 79
+  reject:
+    min: 0
+    max: 64
+
+hard_gates:
+  - exposes_or_stores_secrets
+  - contradicts_explicit_user_rule
+  - uses_undocumented_cursor_api_without_experimental_label
+  - makes_broad_hooks_fail_closed_without_backtests
+  - expands_mcp_or_tool_access_without_boundary
+  - increases_cost_without_evidence
+  - changes_hook_runtime_away_from_posix_sh_without_adr

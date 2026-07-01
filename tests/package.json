@@ -1,0 +1,12 @@
+{
+  "name": "sispace-html-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify:test-html": "node verify-test-html.mjs",
+    "verify:settings-panel": "node verify-settings-panel.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.60.0"
+  }
+}

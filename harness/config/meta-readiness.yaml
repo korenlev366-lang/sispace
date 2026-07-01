@@ -1,0 +1,24 @@
+# Meta-harness readiness thresholds (see docs/meta-harness-readiness.md)
+
+milestones:
+  full_post_task_sessions:
+    target: 40
+    signal: harness/reports/rollout-log.md
+    pattern: "^### ROLLOUT-"
+
+  rejected_lessons:
+    target: 15
+    signal: harness/memory/rejected-lessons.md
+    pattern: "^### REJECTED-"
+
+  user_model_entries:
+    target: 3
+    min_confidence: medium
+    signal: harness/memory/user-model.md
+    pattern: "^### USER-PREF-"
+
+  pre_tool_override:
+    max_in_rolling_days: 0
+    rolling_days: 14
+    signal: harness/memory/tool-override-log.md
+    pattern: "^### OVERRIDE-"

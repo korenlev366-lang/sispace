@@ -1,0 +1,20 @@
+# Harness runtime configuration (Phase 10).
+# Edit category flags to opt in; locked layers cannot auto-apply regardless of values here.
+
+version: 1
+
+auto_apply:
+  enabled: true
+  categories:
+    docs: true
+    memory: true
+    backtests: true
+
+# Never auto-apply these target layers, even if added under auto_apply.categories by mistake.
+locked_categories:
+  - rules
+  - hooks
+  - skills
+  - commands
+  - mcp
+  - user-model

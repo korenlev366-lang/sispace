@@ -1,0 +1,28 @@
+# Harness token optimizer — Ghost Token Hunter + Headroom compression.
+# Ghost hunter always runs locally. Headroom uses proxy when available,
+# otherwise headroom-lite (JSON crush, log dedup, text dedup).
+
+version: 1
+enabled: true
+
+ghost_hunter:
+  enabled: true
+  # Higher = more aggressive ghost removal (0.0–1.0)
+  sensitivity: 0.72
+  # Blocks with signal above this are kept even if ghost-like
+  min_signal_to_keep: 0.35
+
+headroom:
+  enabled: true
+  proxy_url: http://localhost:8787
+  fallback_lite: true
+  timeout_ms: 8000
+  model: gpt-4o
+  # Keep ~55% of tokens — conservative for reflection intelligence
+  target_keep_ratio: 0.55
+
+budgets:
+  reflection_transcript: 12000
+  reflection_lessons: 3000
+  reflection_goals: 6000
+  subagent_prompt: 32000

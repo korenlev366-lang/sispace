@@ -1,0 +1,1126 @@
+{
+  "version": 1,
+  "generated": "2026-06-16T11:35:55.394Z",
+  "source": "harness/memory/accepted-lessons/",
+  "entries": [
+    {
+      "id": "ACCEPTED-20260529-GNU-001:",
+      "title": "Capture RENDER thread's context classloader via Thread.currentThread().getContex",
+      "oneliner": "Capture RENDER thread's context classloader via Thread.currentThread().getContextClassLoader() instead of Launch.classLoader to avoid duplicate LaunchClassLoader with uninitialized Forge state.",
+      "tags": [
+        "classloader",
+        "forge",
+        "jvmti",
+        "bootstrap",
+        "jni",
+        "threading"
+      ],
+      "file": "ACCEPTED-20260529-GNU-001_.md"
+    },
+    {
+      "id": "ACCEPTED-20260529-GNU-002:",
+      "title": "In injected jars, resolve MC classes via reflection anchored on non-obfuscated F",
+      "oneliner": "In injected jars, resolve MC classes via reflection anchored on non-obfuscated Forge's FMLClientHandler.getClient(); avoid static SRG refs to bypass deobf remapping.",
+      "tags": [
+        "forge",
+        "reflection",
+        "injection",
+        "obfuscation",
+        "classloading",
+        "mixin"
+      ],
+      "file": "ACCEPTED-20260529-GNU-002_.md"
+    },
+    {
+      "id": "ACCEPTED-20260529-GNU-003:",
+      "title": "Always restart Minecraft for every native-agent .so rebuild; re-injecting into a",
+      "oneliner": "Always restart Minecraft for every native-agent .so rebuild; re-injecting into a live JVM is a no-op due to Agent_OnAttach guard and cached classes.",
+      "tags": [
+        "native-agent",
+        "jvm",
+        "hot-reload",
+        "agent_onattach",
+        "gnuclient",
+        "forge"
+      ],
+      "file": "ACCEPTED-20260529-GNU-003_.md"
+    },
+    {
+      "id": "ACCEPTED-20260529-GNU-004:",
+      "title": "Use static TTFs from @expo-google-fonts/nunito via jsDelivr, not variable fonts,",
+      "oneliner": "Use static TTFs from @expo-google-fonts/nunito via jsDelivr, not variable fonts, because ImGui's stb_truetype lacks axis support.",
+      "tags": [
+        "imgui",
+        "fonts",
+        "stb_truetype",
+        "variable-fonts",
+        "dladdr",
+        "static-ttf"
+      ],
+      "file": "ACCEPTED-20260529-GNU-004_.md"
+    },
+    {
+      "id": "ACCEPTED-20260529-GNU-005:",
+      "title": "Toggle ImGui overlay with ydotoold key 110 (evdev) and focus + grim the Hyprland",
+      "oneliner": "Toggle ImGui overlay with ydotoold key 110 (evdev) and focus + grim the Hyprland window before capture; avoid xdotool or plain grim on multi-workspace.",
+      "tags": [
+        "hyprland",
+        "grim",
+        "evdev",
+        "ydotoold",
+        "imgui",
+        "xwayland"
+      ],
+      "file": "ACCEPTED-20260529-GNU-005_.md"
+    },
+    {
+      "id": "ACCEPTED-CURATE-MEMORY-DISTILL:",
+      "title": "To fix template mismatch, update Required Fields block to match live entry shape",
+      "oneliner": "To fix template mismatch, update Required Fields block to match live entry shape and add Verification evidence grep lines.",
+      "tags": [
+        "template",
+        "memory",
+        "harness",
+        "grep",
+        "fields",
+        "curate"
+      ],
+      "file": "ACCEPTED-CURATE-MEMORY-DISTILL_.md"
+    },
+    {
+      "id": "ACCEPTED-CURATE-SUPERPOWERS-TRIM:",
+      "title": "Move git-specific worktree and branch skills to archive and add a scope markdown",
+      "oneliner": "Move git-specific worktree and branch skills to archive and add a scope markdown file for non-git workspaces.",
+      "tags": [
+        "git",
+        "workspace",
+        "skills",
+        "archiving",
+        "scope"
+      ],
+      "file": "ACCEPTED-CURATE-SUPERPOWERS-TRIM_.md"
+    },
+    {
+      "id": "PENDING-20260601-RALPH-VERIFY:",
+      "title": "Accepted proposal",
+      "oneliner": "Normalize Ralph verify storage: `harness/memory/ralph-goal.md` uses `sh harness/scripts/verify-gnu-packet-modules.sh`. `validateVerifyCommandShape()` in `ralph-",
+      "tags": [
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "c03",
+        "c02",
+        "network",
+        "memory"
+      ],
+      "file": "PENDING-20260601-RALPH-VERIFY_.md"
+    },
+    {
+      "id": "PENDING-20260602-AIMASSIST-HUMANIZE:",
+      "title": "Accepted proposal",
+      "oneliner": "Append reasoning pattern for Vulcan AimAssist rotation flags: cap pitch with fixed multiplier (verticalSpeed * 0.15f) not mouse GCD; humanization checklist — se",
+      "tags": [
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "aimassist",
+        "combat",
+        "vulcan",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "css",
+        "modal",
+        "ui",
+        "memory"
+      ],
+      "file": "PENDING-20260602-AIMASSIST-HUMANIZE_.md"
+    },
+    {
+      "id": "PENDING-20260602-RETRO-DONE-GUARD:",
+      "title": "Accepted proposal",
+      "oneliner": "`harness/scripts/retroactive-reflect.sh`: session-scoped completion via `session_completed_in_window()` — only `reasoning pattern appended session=${gen}` count",
+      "tags": [
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "scripts"
+      ],
+      "file": "PENDING-20260602-RETRO-DONE-GUARD_.md"
+    },
+    {
+      "id": "PENDING-20260603-CURATE-DRAFT-LEDGER:",
+      "title": "Accepted proposal",
+      "oneliner": "Require /harness-curate (and harness-project-intake skill) to draft inactive PENDING-CURATE-* stubs in harness/memory/pending-proposals.md as part of read-only",
+      "tags": [
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "command"
+      ],
+      "file": "PENDING-20260603-CURATE-DRAFT-LEDGER_.md"
+    },
+    {
+      "id": "PENDING-20260603-GNUCLIENT-LAG-DRAIN-CHECKLIST:",
+      "title": "Accepted proposal",
+      "oneliner": "Extend .agents/skills/gnuclient-dev/SKILL.md with a Lag module parity checklist: (1) onTickStart combat in try/finally that always drains when not lagging; (2)",
+      "tags": [
+        "gnuclient",
+        "minecraft",
+        "jvmti",
+        "native-agent",
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "cursorsi",
+        "cli",
+        "tui",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "css",
+        "modal",
+        "ui",
+        "agents"
+      ],
+      "file": "PENDING-20260603-GNUCLIENT-LAG-DRAIN-CHECKLIST_.md"
+    },
+    {
+      "id": "PENDING-20260603-GNUCLIENT-LAG-SKILL-REVISE-STAGGER:",
+      "title": "Accepted proposal",
+      "oneliner": "Revise .agents/skills/gnuclient-dev/SKILL.md Lag parity checklist before applying PENDING-20260603-GNUCLIENT-LAG-DRAIN-CHECKLIST: delete ≥300ms stagger-cap bull",
+      "tags": [
+        "gnuclient",
+        "minecraft",
+        "jvmti",
+        "native-agent",
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "cursorsi",
+        "cli",
+        "tui",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "css",
+        "modal",
+        "ui",
+        "skills"
+      ],
+      "file": "PENDING-20260603-GNUCLIENT-LAG-SKILL-REVISE-STAGGER_.md"
+    },
+    {
+      "id": "PENDING-20260603-GNUCLIENT-QUEUE-POLICY:",
+      "title": "Accepted proposal",
+      "oneliner": "Revise gnuclient-dev packet-queue policy at /harness-apply: replace accepted FIFO-drain wording with final Grim hold-only semantics from session end — never inj",
+      "tags": [
+        "gnuclient",
+        "minecraft",
+        "jvmti",
+        "native-agent",
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "cursorsi",
+        "cli",
+        "tui",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "c03",
+        "c02",
+        "network",
+        "skills"
+      ],
+      "file": "PENDING-20260603-GNUCLIENT-QUEUE-POLICY_.md"
+    },
+    {
+      "id": "PROP-20250603-001:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness-workflow or architecture-planning skill rule: when the user names an explicit output file (e.g. SISPACE_PLAN.md), write the completed plan directl",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20250603-001_.md"
+    },
+    {
+      "id": "PROP-20250603-002:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness-workflow skill rule: before running destructive greenfield scaffolders (e.g. create-tauri-app --force) in a repo with .cursor/ and harness/, prefe",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20250603-002_.md"
+    },
+    {
+      "id": "PROP-20250603-003:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness integration doc describing the desktop sidecar SSE bridge pattern: Node sidecar wraps HARNESS_HOME dist with SSE endpoints; Rust blocking reqwest",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20250603-003_.md"
+    },
+    {
+      "id": "PROP-20250603-004:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a feature-task skill rule for CSS/modal surface bugs: run verify-and-close first when source already matches spec (zero app diff). Require a verify script t",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui"
+      ],
+      "file": "PROP-20250603-004_.md"
+    },
+    {
+      "id": "PROP-20250603-007:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Extend Obsidian verification so sync cross-link changes require E2E proof: add a `--require-sync-links` mode to verify-obsidian-vault-graph.mjs (or a verify-obs",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui"
+      ],
+      "file": "PROP-20250603-007_.md"
+    },
+    {
+      "id": "PROP-20260603-004:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness/memory architecture note documenting SISpace model routing: tasks store one model_id; DEFAULT_MODEL_ID is composer-2.5-fast in TS, Rust, YAML, and",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260603-004_.md"
+    },
+    {
+      "id": "PROP-20260603-005:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness-workflow port checklist bullet: when copying verify scripts from another project, replace project-specific test fixtures (e.g. minecraft jar class",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal"
+      ],
+      "file": "PROP-20260603-005_.md"
+    },
+    {
+      "id": "PROP-20260603-006:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness-workflow troubleshooting bullet: when Obsidian MCP tools are missing despite healthy REST (127.0.0.1:27123), check project `.cursor/mcp.json` firs",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260603-006_.md"
+    },
+    {
+      "id": "PROP-20260603-008:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Extend researcher-agent.md with a harness-knowledge-graph research checklist: before recommending link rules, read post-task-chain.ts syncObsidianEntries block",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260603-008_.md"
+    },
+    {
+      "id": "PROP-20260603-009:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a short 'Pipeline runtime path' invariant to SISPACE_PLAN.md (or README): Tauri spawns lib/node-server.mjs → lib/pipeline-run.mjs; scripts/pipeline-lib.mjs",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260603-009_.md"
+    },
+    {
+      "id": "PROP-20260603-010:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Update tests/verify-cursorsi-phase0b.mjs to assert stable Phase 0b wiring markers (Agent.create SDK loop, real slash router handlers, bootstrapCredential in bin",
+      "tags": [
+        "cursorsi",
+        "cli",
+        "tui",
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal"
+      ],
+      "file": "PROP-20260603-010_.md"
+    },
+    {
+      "id": "PROP-20260603-LAGRANGE-TICK-DRAIN-SKILL:",
+      "title": "Accepted proposal",
+      "oneliner": "Extend .agents/skills/gnuclient-dev/SKILL.md with a packet-queue policy subsection reflecting final session semantics: Lagrange combat on onTickStart (before C0",
+      "tags": [
+        "gnuclient",
+        "minecraft",
+        "jvmti",
+        "native-agent",
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "cursorsi",
+        "cli",
+        "tui",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "css",
+        "modal",
+        "ui",
+        "skills"
+      ],
+      "file": "PROP-20260603-LAGRANGE-TICK-DRAIN-SKILL_.md"
+    },
+    {
+      "id": "PROP-20260604-003:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a harness-workflow skill rule for Ralph-style goal loops in CursorSI/harness integrations: run the goal verify command only after an agent turn produces act",
+      "tags": [
+        "cursorsi",
+        "cli",
+        "tui",
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal"
+      ],
+      "file": "PROP-20260604-003_.md"
+    },
+    {
+      "id": "PROP-20260604-004:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a SISPACE_V2_PLAN.md architecture-decision subsection: (1) Unix-socket pane IPC (--event-socket NDJSON + PaneIpcHub) is the orchestration boundary—embedded",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260604-004_.md"
+    },
+    {
+      "id": "PROP-20260604-005:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Fix sessionHasReflectableContent in cli/src/harness/transcript.ts to exclude the actual Phase 0b startup banner (\"ready — type a message or /help\" or a sess_* r",
+      "tags": [
+        "cursorsi",
+        "cli",
+        "tui",
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260604-005_.md"
+    },
+    {
+      "id": "PROP-20260604-006:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add a single harness-workflow skill bullet for Tauri+Node sidecar debugging: before fixing pipeline/sidecar bugs, read src-tauri/src/services/node_host.rs to co",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260604-006_.md"
+    },
+    {
+      "id": "PROP-20260604-compaction-cutpoint-tests:",
+      "title": "Accepted proposal (Obsidian vault)",
+      "oneliner": "Add runtime unit tests for exported compaction pure functions (findCompactionCutPoint, shouldAutoCompact, estimateSessionContextTokens, trimLinesAfterCompaction",
+      "tags": [
+        "compaction",
+        "context",
+        "tokens",
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal"
+      ],
+      "file": "PROP-20260604-compaction-cutpoint-tests_.md"
+    },
+    {
+      "id": "PENDING-YYYYMMDD-001:",
+      "title": "Accepted proposal",
+      "oneliner": "Accepted proposal",
+      "tags": [
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "- date: 2026-06-04"
+      ],
+      "file": "PENDING-YYYYMMDD-001_.md"
+    },
+    {
+      "id": "PENDING-LAGRANGE-AC-CHECKLIST:",
+      "title": "Accepted proposal",
+      "oneliner": "Extend `.agents/skills/combat-parity/SKILL.md` with a Raven-only lag-module anticheat checklist: (1) grep audit for per-tick multi-packet drain paths, (2) C03-o",
+      "tags": [
+        "lagrange",
+        "lag",
+        "packet",
+        "anticheat",
+        "grim",
+        "aimassist",
+        "combat",
+        "vulcan",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "c03",
+        "c02",
+        "network",
+        "skills"
+      ],
+      "file": "PENDING-LAGRANGE-AC-CHECKLIST_.md"
+    },
+    {
+      "id": "ACCEPTED-20250603-PIPELINE-RUNTIME:",
+      "title": "Fix pipeline runtime edits must target lib/ files, not scripts/, because live si",
+      "oneliner": "Fix pipeline runtime edits must target lib/ files, not scripts/, because live sidecar spawns lib/pipeline-run.mjs via node_host.rs.",
+      "tags": [
+        "pipeline",
+        "runtime",
+        "sidecar",
+        "regression",
+        "editing",
+        "memory"
+      ],
+      "file": "ACCEPTED-20250603-PIPELINE-RUNTIME_.md"
+    },
+    {
+      "id": "PROP-20250603-008:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a SISpace pipeline operator section to README.md (or SISPACE_PLAN.md) documenting the live Node runtime map (node_host.rs spawns lib/node-server.mjs → lib/p",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "docs"
+      ],
+      "file": "PROP-20250603-008_.md"
+    },
+    {
+      "id": "PROP-20260604-001:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a gtk-app / Rust-GTK workflow rule: before importing gtk4-rs or libadwaita prelude traits, grep the installed crate's prelude.rs and auto/*.rs under ~/.carg",
+      "tags": [
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "skill"
+      ],
+      "file": "PROP-20260604-001_.md"
+    },
+    {
+      "id": "PENDING-20260605-GTK-CARGO-ALIAS:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a 'Cargo.toml dependency aliases' subsection to .cursor/skills/gtk-app/SKILL.md: dependency keys must be `gtk` and `adw` with `package = \"gtk4\"` / `package",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui",
+        "skill"
+      ],
+      "file": "PENDING-20260605-GTK-CARGO-ALIAS_.md"
+    },
+    {
+      "id": "PROP-20260605-GTK-VERIFY:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a GTK4 startup lesson and extend gtk4 phase verify scripts: (1) never capture gtk/adw widget handles in std::thread::spawn—init AppState on a background thr",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui",
+        "memory"
+      ],
+      "file": "PROP-20260605-GTK-VERIFY_.md"
+    },
+    {
+      "id": "PENDING-20260605-GTK-TILE-001:",
+      "title": "Accepted proposal",
+      "oneliner": "Add accepted-lesson for sispace-gtk: (1) Do not tile VTE panes with GtkFixed drag remove/put—use Box column layout with col.append/col.remove on close. (2) Preb",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "css",
+        "modal",
+        "ui",
+        "memory"
+      ],
+      "file": "PENDING-20260605-GTK-TILE-001_.md"
+    },
+    {
+      "id": "PROP-20260605-GTK-HARNESS-MAP:",
+      "title": "Accepted proposal",
+      "oneliner": "Append accepted-lesson bullet for GTK4 harness/sidebar panels attached to AdwTabView: start ListBox with SelectionMode::None so row-selected does not fire durin",
+      "tags": [
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui",
+        "memory"
+      ],
+      "file": "PROP-20260605-GTK-HARNESS-MAP_.md"
+    },
+    {
+      "id": "PROPOSAL-20260606-GTK-LAZY-KEEPALIVE:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a scoped gtk-app/ accepted-lesson: when lazy-loading AdwTabView pages via Stack placeholders (selected_page_notify), storing only tab.widget().clone() drops",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "memory"
+      ],
+      "file": "PROPOSAL-20260606-GTK-LAZY-KEEPALIVE_.md"
+    },
+    {
+      "id": "PROP-20260605-GTK-VERIFY-COMPILE:",
+      "title": "Accepted proposal",
+      "oneliner": "Extend tests/verify-sispace-gtk4-phase2.mjs through phase7.mjs to exec `cargo build -p sispace-gtk` (fail fast on compile errors) and optionally `SISPACE_GTK_SM",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "css",
+        "modal",
+        "ui",
+        "backtest"
+      ],
+      "file": "PROP-20260605-GTK-VERIFY-COMPILE_.md"
+    },
+    {
+      "id": "PENDING-20260605-GTK-REENTRANCY:",
+      "title": "Accepted proposal",
+      "oneliner": "Amend gtk-app scoped memory (cross-link PROPOSAL-20260606-GTK-LAZY-KEEPALIVE): GTK4 ListBox/TabView handlers that mutate widgets or rebuild UI during selection",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "ralph",
+        "verify",
+        "goal",
+        "memory"
+      ],
+      "file": "PENDING-20260605-GTK-REENTRANCY_.md"
+    },
+    {
+      "id": "PENDING-20260605-GTK-SYNC-SCOPE:",
+      "title": "Accepted proposal",
+      "oneliner": "Amend gtk-app scoped memory (cross-link PENDING-20260605-GTK-REENTRANCY / PROPOSAL-20260606-GTK-LAZY-KEEPALIVE): TabView↔strip syncing flags (syncing/is_syncing",
+      "tags": [
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "memory"
+      ],
+      "file": "PENDING-20260605-GTK-SYNC-SCOPE_.md"
+    },
+    {
+      "id": "PENDING-20260605-PIPE-RUNTIME-LIB:",
+      "title": "Accepted proposal",
+      "oneliner": "Add accepted-lesson or memory entry: SISpace pipeline sidecar is spawned from `lib/node-server.mjs` (see `src-tauri/src/services/node_host.rs`), which imports `",
+      "tags": [
+        "sispace",
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "memory"
+      ],
+      "file": "PENDING-20260605-PIPE-RUNTIME-LIB_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-PIPE-RUNTIME:",
+      "title": "Trace Tauri sidecar spawn path: sispace-core node_host.rs spawns lib/node-server",
+      "oneliner": "Trace Tauri sidecar spawn path: sispace-core node_host.rs spawns lib/node-server.mjs imports pipeline-run.mjs; edits to scripts/pipeline-lib.mjs don't affect live pipeline causing regressions.",
+      "tags": [
+        "tauri",
+        "sidecar",
+        "pipeline",
+        "spawn-path",
+        "node_host",
+        "regression"
+      ],
+      "file": "ACCEPTED-20260605-PIPE-RUNTIME_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-SISPACE-RUNTIME-PATH:",
+      "title": "Patch lib/pipeline-run.mjs for Node sidecar fixes, not scripts/pipeline-lib.mjs;",
+      "oneliner": "Patch lib/pipeline-run.mjs for Node sidecar fixes, not scripts/pipeline-lib.mjs; always fully quit SISpace to reload the sidecar after changes.",
+      "tags": [
+        "tauri",
+        "sidecar",
+        "node",
+        "runtime",
+        "pipeline",
+        "restart"
+      ],
+      "file": "ACCEPTED-20260605-SISPACE-RUNTIME-PATH_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-MAP-001:",
+      "title": "Fix GTK4 stack overflow by idle-deferring shell install, TabView tab attach, pan",
+      "oneliner": "Fix GTK4 stack overflow by idle-deferring shell install, TabView tab attach, pane rebuilds, and lazy-loading VTE tabs to break main-loop signal reentrancy during first map.",
+      "tags": [
+        "gtk4",
+        "reentrancy",
+        "stack-overflow",
+        "idle-defer",
+        "tabview",
+        "vte"
+      ],
+      "file": "ACCEPTED-20260605-GTK-MAP-001_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-TAB-STABILITY:",
+      "title": "Keep Rc<TabController> in TabKeepalive for lazy tabs; lazy-mount heavy tabs on s",
+      "oneliner": "Keep Rc<TabController> in TabKeepalive for lazy tabs; lazy-mount heavy tabs on selected_page_notify; defer ListBox selection to post-map idle; avoid AdwTabBar if icon-theme recursion occurs.",
+      "tags": [
+        "gtk4",
+        "tab",
+        "keepalive",
+        "lazy-loading",
+        "stability",
+        "avoid-duplication"
+      ],
+      "file": "ACCEPTED-20260605-GTK-TAB-STABILITY_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-LAZY-TABS:",
+      "title": "Defer GTK4 tab finish_layout until selection using Stack placeholders and idle→t",
+      "oneliner": "Defer GTK4 tab finish_layout until selection using Stack placeholders and idle→timeout lazy mount; avoid gating on is_visible() and bisect with minimal present() shell.",
+      "tags": [
+        "gtk4",
+        "lazy-loading",
+        "reentrancy",
+        "stack-overflow",
+        "tab-layout",
+        "smoke-test"
+      ],
+      "file": "ACCEPTED-20260605-GTK-LAZY-TABS_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-PIPELINE-RUNTIME-PATH:",
+      "title": "patch lib/pipeline-run.mjs, not scripts/pipeline-lib.mjs, for sidecar SSE (step_",
+      "oneliner": "patch lib/pipeline-run.mjs, not scripts/pipeline-lib.mjs, for sidecar SSE (step_content has result, step_done is metadata-only, pipeline_done no steps).",
+      "tags": [
+        "pipeline",
+        "sidecar",
+        "sse",
+        "path",
+        "regression"
+      ],
+      "file": "ACCEPTED-20260605-PIPELINE-RUNTIME-PATH_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-SYNC:",
+      "title": "Fix GTK4 bidirectional selection sync stack overflow by centralizing with Rc<Cel",
+      "oneliner": "Fix GTK4 bidirectional selection sync stack overflow by centralizing with Rc<Cell<bool>> guard and resetting via glib::idle_add_local_once.",
+      "tags": [
+        "gtk4",
+        "rc",
+        "cell",
+        "guard",
+        "stack overflow",
+        "idle"
+      ],
+      "file": "ACCEPTED-20260605-GTK-SYNC_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-SYNC-001:",
+      "title": "Use shared Rc<Cell<bool>> guard with idle_add_local_once deferral for AdwTabView",
+      "oneliner": "Use shared Rc<Cell<bool>> guard with idle_add_local_once deferral for AdwTabView↔ToggleButton sync; try_borrow_mut skips avoid panic on reentrant signal handlers; debounce lazy Stack mounts with building/built guards.",
+      "tags": [
+        "adwtabview",
+        "togglebutton",
+        "gtk",
+        "reentrancy",
+        "signal",
+        "debounce"
+      ],
+      "file": "ACCEPTED-20260605-GTK-SYNC-001_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-REENTRANCY-001:",
+      "title": "Defer GTK signal guard resets via glib::idle_add_local_once, use try_borrow for ",
+      "oneliner": "Defer GTK signal guard resets via glib::idle_add_local_once, use try_borrow for RefCell state in connect_clicked handlers, and guard start_loop with a started Cell<bool> for idempotency.",
+      "tags": [
+        "gtk4",
+        "reentrancy",
+        "cell",
+        "idle_add_local_once",
+        "try_borrow",
+        "ipc"
+      ],
+      "file": "ACCEPTED-20260605-GTK-REENTRANCY-001_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-OVERFLOW-ROOTCAUSE:",
+      "title": "Prove GTK overflow is signal reentrancy, not shallow Rust stack, by reproducing ",
+      "oneliner": "Prove GTK overflow is signal reentrancy, not shallow Rust stack, by reproducing with GDB and 32–128MB stack; if libgtk frames persist, keep deferred mount/async guards and bisect tabs with stubbed finish_layout.",
+      "tags": [
+        "gtk",
+        "stack overflow",
+        "signal reentrancy",
+        "gdb bisect",
+        "deferred mounting",
+        "memory"
+      ],
+      "file": "ACCEPTED-20260605-GTK-OVERFLOW-ROOTCAUSE_.md"
+    },
+    {
+      "id": "ACCEPTED-20260605-GTK-TAB-IDLE:",
+      "title": "Bisect GTK4 tab stack overflows by stubbing finish_layout; fix signal reentrancy",
+      "oneliner": "Bisect GTK4 tab stack overflows by stubbing finish_layout; fix signal reentrancy via staged idle_add_local_once deferring container clear/append and ListBox populate after attach, using SelectionMode::None then deferred Single.",
+      "tags": [
+        "gtk4",
+        "stack-overflow",
+        "signal-reentrancy",
+        "idle-add",
+        "tab-attach",
+        "listbox"
+      ],
+      "file": "ACCEPTED-20260605-GTK-TAB-IDLE_.md"
+    },
+    {
+      "id": "PROP-20260607-CTX-BAR-SCOPE:",
+      "title": "Accepted proposal",
+      "oneliner": "Add a short user-facing note (e.g. /help compaction section or AGENTS.md CursorSI TUI section) stating the ctx bar and auto-compaction use estimateSessionContex",
+      "tags": [
+        "compaction",
+        "context",
+        "tokens",
+        "cursorsi",
+        "cli",
+        "tui",
+        "obsidian",
+        "vault",
+        "mcp",
+        "harness",
+        "curate",
+        "grade",
+        "proposal",
+        "docs"
+      ],
+      "file": "PROP-20260607-CTX-BAR-SCOPE_.md"
+    },
+    {
+      "id": "ACCEPTED-20260607-GNU-006:",
+      "title": "When getDeclaredMethod throws NoSuchMethodException, fall back to name-only sear",
+      "oneliner": "When getDeclaredMethod throws NoSuchMethodException, fall back to name-only search via getDeclaredMethods at the same class level before superclass; invoke handles subtype compatibility.",
+      "tags": [
+        "reflection",
+        "optifine",
+        "getdeclaredmethod",
+        "nosuchmethodexception",
+        "fallback",
+        "subtype"
+      ],
+      "file": "ACCEPTED-20260607-GNU-006_.md"
+    }
+  ]
+}

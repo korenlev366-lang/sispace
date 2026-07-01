@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+    }
+
+    button {
+      font-size: 2.5rem;
+      padding: 1.25rem 2.5rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button type="button" id="test-btn">test</button>
+  <script>
+    let audioContext = null;
+
+    function playDing() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      if (!audioContext) {
+        audioContext = new AudioCtx();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      const now = audioContext.currentTime;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(1000, now);
+
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.25);
+    }
+
+    document.getElementById('test-btn').addEventListener('click', playDing);
+  </script>
+</body>
+</html>

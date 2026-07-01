@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SISpace
+GenericName=Task orchestration
+Comment=Self-improvement task orchestration desktop shell
+Exec=@SISPACE_EXEC@
+Icon=sispace
+Categories=Development;Utility;
+Keywords=sispace;cursorsi;harness;tasks;
+StartupWMClass=dev.lev.sispace
+Terminal=false
+StartupNotify=true

@@ -1,0 +1,61 @@
+# Dependencies (regenerated via npm install / cargo build)
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+target/
+**/target/
+*.tsbuildinfo
+**/*.rs.bk
+
+# Python venvs
+**/.venv*/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Secrets / env / local config
+.env
+.env.*
+*.key
+sispace-launch.sh
+**/settings.json
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs / crash logs
+*.log
+crash.log
+
+# Probe / throwaway scripts and their output
+cli/probe-*.mjs
+cli/probe-*.txt
+cli/probe-*.out.txt
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+# Scratch / temp / backup files
+*.bak.*
+*.bak
+_*.txt
+_tmp_*
+_orch_copy.txt
+_lines_*.txt
+_theme_chunk_*.txt
+/re
+
+# Images / screenshots / frames
+*.png
+lagback_*.png
+screenshot_*.png
+
+# Security notes
+security_audit.md
