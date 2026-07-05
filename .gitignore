@@ -59,3 +59,11 @@ screenshot_*.png
 
 # Security notes
 security_audit.md
+
+# Local harness state (seeded from harness/scaffold/ via harness-bootstrap.sh)
+harness/memory/*
+!harness/memory/README.md
+harness/reports/*
+!harness/reports/README.md
+harness/vault-mirror/
+harness/config/obsidian.yaml

@@ -1,0 +1,22 @@
+# Obsidian vault index paths (searchable mirror; repo markdown stays source of truth).
+# Copy to obsidian.yaml on first setup: sh harness/scripts/harness-bootstrap.sh
+# Or set OBSIDIAN_VAULT_ROOT in the environment (overrides vault_root below).
+
+vault_root: ""
+vault_prefix: Harness
+
+folders:
+  accepted_lessons: Harness/accepted-lessons
+  rejected_lessons: Harness/rejected-lessons
+  user_model: Harness/user-model
+  reasoning_patterns: Harness/reasoning-patterns
+  rollout_log: Harness/rollout-log
+  tasks: SISpace/tasks
+
+# REST/MCP search scopes for lesson recall at session start (vault-relative).
+lesson_search_globs:
+  - Harness/accepted-lessons/**
+  - Harness/rejected-lessons/**
+  - Harness/user-model/**
+  - Harness/reasoning-patterns/**
+  - SISpace/tasks/**

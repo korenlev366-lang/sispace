@@ -58,6 +58,8 @@ export OPENROUTER_API_KEY=...   # required (default OpenRouter backend)
 npm run cursorsi            # = sh cli/run.sh
 ```
 
+First-time harness memory: `npm run harness:bootstrap` (local-only, gitignored).
+
 Env vars (bash/fish), Obsidian vault, and MCP wiring: [docs/obsidian-setup.md](./docs/obsidian-setup.md).
 
 **Node sidecar** (spawned automatically by the GTK app; run manually for debugging)

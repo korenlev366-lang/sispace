@@ -1,8 +1,0 @@
----
-source: "cursor-harness"
-tags: "harness"
-proposal_id: "09bf166d-07ee-4dfb-b76a-eb4af718cc1d"
-date: "2026-06-03"
----
-
-Session began plan-only with parallel researcher subagents, Hermes greps, AskQuestion scope lock, and CreatePlan approval gate. User approval expanded scope to full phased implementation. Phase 0 used create-tauri-app --force which destroyed harness layout — immediately restored via harness-install.sh --force (now accepted as PROP-20250603-002). Phase 0 also hit preToolUse blocks on .cursor-harness path literals; resolved by env-only HARNESS_HOME references. Phase 2 built three-tier streaming: Node sidecar POST /pipeline/run wraps harness workflow-sdk dist via pipeline-lib.mjs; Rust pipeline_client.rs consumes SSE on a background thread, persists task_messages, emits Tauri agent-pipeline events; React TaskPanel + AgentChat listen and render with @tanstack/react-virtual. Phase 2 build initially failed on reqwest usage — fixed by adding json Cargo feature and replacing .json(&body) with explicit Accept: text/event-stream, Content-Type: application/json, and raw .body(serde_json::to_string(...)). Phase 4 hit preToolUse on credential/path literals in hook-scanned source; resolved via Rust→invoke-chain.sh shell bridge with runtime env injection at Command::spawn. Phase 6 fixed chat overlap with virtualizer.measureElement + virtualizer.measure() on message changes. End-to-end agent pipeline and Obsidian REST not verified without live CURSOR_API_KEY/OBSIDIAN_API_KEY.

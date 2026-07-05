@@ -2,7 +2,9 @@
 
 ## obsidian.yaml
 
-Obsidian vault root and vault-relative `Harness/` folder paths. Shell scripts must quote `vault_root` because it contains a space (`/home/lev/harness vault`).
+Obsidian vault root and vault-relative `Harness/` folder paths. The repo ships `obsidian.yaml.example`; run `sh harness/scripts/harness-bootstrap.sh` to copy it to `obsidian.yaml` (gitignored). Quote `vault_root` when it contains spaces.
+
+Override at runtime with `OBSIDIAN_VAULT_ROOT` (takes precedence over `vault_root` in yaml).
 
 Helper: `sh harness/scripts/obsidian-vault-path.sh` prints `OBSIDIAN_VAULT_ROOT`, `OBSIDIAN_HARNESS_DIR`.
 

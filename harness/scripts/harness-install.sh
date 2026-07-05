@@ -229,6 +229,12 @@ if [ -d "$SRC_HARNESS/config" ]; then
   copy_tree "$SRC_HARNESS/config" "$TARGET_DIR/harness/config"
 fi
 
+if [ ! -f "$TARGET_DIR/harness/config/obsidian.yaml" ] && [ -f "$TARGET_DIR/harness/config/obsidian.yaml.example" ]; then
+  cp "$TARGET_DIR/harness/config/obsidian.yaml.example" "$TARGET_DIR/harness/config/obsidian.yaml"
+  printf 'INIT  %s\n' "$TARGET_DIR/harness/config/obsidian.yaml"
+  COPIED=$((COPIED + 1))
+fi
+
 if [ -d "$SRC_HARNESS/scaffold/memory" ]; then
   copy_tree "$SRC_HARNESS/scaffold/memory" "$MEMORY_ROOT/harness/memory"
 fi
@@ -241,8 +247,10 @@ if [ -d "$SRC_HARNESS/scripts" ]; then
   copy_tree "$SRC_HARNESS/scripts" "$TARGET_DIR/harness/scripts"
 fi
 
-if [ -f "$SRC_HARNESS/memory/README.md" ]; then
-  copy_file "$SRC_HARNESS/memory/README.md" "$MEMORY_ROOT/harness/memory/README.md"
+if [ -f "$SRC_HARNESS/scaffold/memory/README.md" ]; then
+  copy_file "$SRC_HARNESS/scaffold/memory/README.md" "$MEMORY_ROOT/harness/memory/README.md"
+elif [ -f "$HARNESS_HOME/harness/memory/README.md" ]; then
+  copy_file "$HARNESS_HOME/harness/memory/README.md" "$MEMORY_ROOT/harness/memory/README.md"
 fi
 
 if [ -f "$SRC_HARNESS/reports/README.md" ]; then

@@ -2,7 +2,18 @@
 
 This guide wires Obsidian into SISpace and the self-improving harness: vault mirroring after long sessions, lesson recall at session start, and MCP tools for agents.
 
-Repo markdown under `harness/memory/` stays the **source of truth**. Obsidian notes are a searchable mirror — see [obsidian-sync.md](../.cursor/hooks/lib/obsidian-sync.md) and [harness-knowledge-graph.md](./harness-knowledge-graph.md).
+Repo markdown under `harness/memory/` stays the **source of truth** on your machine. That directory is **local-only** (gitignored) — run bootstrap after clone so it exists on your machine but is never pushed to GitHub. Obsidian notes are a searchable mirror — see [obsidian-sync.md](../.cursor/hooks/lib/obsidian-sync.md) and [harness-knowledge-graph.md](./harness-knowledge-graph.md).
+
+---
+
+## 0. Bootstrap local harness memory (after clone)
+
+```sh
+npm run harness:bootstrap
+# = sh harness/scripts/harness-bootstrap.sh
+```
+
+This copies empty starter ledgers from `harness/scaffold/` into `harness/memory/` and `harness/reports/`, and creates `harness/config/obsidian.yaml` from the example if missing. Those paths are gitignored — your session history stays on your machine.
 
 ---
 
@@ -19,6 +30,7 @@ Optional override:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `OBSIDIAN_API_URL` | `http://127.0.0.1:27123` | REST base URL if you use a non-default port or HTTPS |
+| `FORGE_CSV_ROOT` | unset | Optional — Forge 1.8.9 MCP CSV directory for cursorsi `mcp_lookup` tool |
 
 **Never commit keys.** Keep them in your shell environment or a local file outside the repo (see below). See also the [Security](../README.md#security) section in the root README.
 
@@ -55,12 +67,14 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 
 ## 2. Point the harness at your vault
 
-Edit `harness/config/obsidian.yaml`:
+After bootstrap, edit `harness/config/obsidian.yaml` (local file — not committed):
 
 ```yaml
 vault_root: "/path/to/your/vault"
 vault_prefix: Harness
 ```
+
+Alternatively, leave `vault_root` empty and export `OBSIDIAN_VAULT_ROOT` (overrides yaml).
 
 - `vault_root` — absolute path to the Obsidian vault root (quote paths with spaces).
 - `vault_prefix` — subdirectory under the vault where harness mirror notes live (default `Harness/`).

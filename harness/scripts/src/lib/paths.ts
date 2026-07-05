@@ -43,7 +43,7 @@ export function resolveSispaceMemoryRoot(projectRoot?: string): string {
     if (fs.existsSync(path.join(resolved, "harness", "memory"))) return resolved;
   }
 
-  for (const candidate of [path.join(os.homedir(), "sispace"), "/home/lev/sispace"]) {
+  for (const candidate of [path.join(os.homedir(), "sispace")]) {
     if (fs.existsSync(path.join(candidate, "harness", "memory"))) {
       return path.resolve(candidate);
     }

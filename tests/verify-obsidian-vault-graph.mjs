@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 
-const vaultRoot = process.env.OBSIDIAN_VAULT_ROOT ?? "/home/lev/harness vault";
+const vaultRoot = process.env.OBSIDIAN_VAULT_ROOT ?? "";
 const failures = [];
 const passes = [];
 

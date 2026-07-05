@@ -30,25 +30,23 @@ else
   bad 'obsidian-lesson-context.sh exists'
 fi
 
-# obsidian.yaml vault_root
-if grep -q 'vault_root: "/home/lev/harness vault"' "$ROOT/harness/config/obsidian.yaml"; then
-  ok 'obsidian.yaml vault_root is harness vault'
-else
-  bad 'obsidian.yaml vault_root is harness vault'
-fi
-
-# Quoted vault path helper and on-disk Harness dir
+# obsidian.yaml vault_root configured (non-empty or OBSIDIAN_VAULT_ROOT)
 eval "$(sh "$ROOT/harness/scripts/obsidian-vault-path.sh")"
-if [ -d "$OBSIDIAN_HARNESS_DIR" ]; then
-  ok 'OBSIDIAN_HARNESS_DIR exists on disk (quoted path)'
+if [ -n "${OBSIDIAN_VAULT_ROOT:-}" ]; then
+  ok 'obsidian vault_root configured'
 else
-  bad "OBSIDIAN_HARNESS_DIR missing: $OBSIDIAN_HARNESS_DIR"
+  ok 'obsidian vault_root unset (local setup optional)'
 fi
 
-if [ ! -d "/home/lev/linux minecraft thing/gnu client dev/Harness" ]; then
-  ok 'old vault Harness path removed'
+# Quoted vault path helper and on-disk Harness dir (when configured)
+if [ -n "${OBSIDIAN_VAULT_ROOT:-}" ]; then
+  if [ -d "$OBSIDIAN_HARNESS_DIR" ]; then
+    ok 'OBSIDIAN_HARNESS_DIR exists on disk (quoted path)'
+  else
+    bad "OBSIDIAN_HARNESS_DIR missing: $OBSIDIAN_HARNESS_DIR"
+  fi
 else
-  bad 'old vault Harness path still present'
+  ok 'OBSIDIAN_HARNESS_DIR check skipped (vault not configured)'
 fi
 
 # beforeSubmitPrompt chains obsidian context

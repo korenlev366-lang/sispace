@@ -162,65 +162,36 @@ impl SispaceTab {
         path_label.set_hexpand(false);
         path_label.set_xalign(0.0);
 
-        // Quick-pick directory buttons
-        let quick_sispace = make_quick_pick_btn("sispace", "/home/lev/sispace");
-        let quick_gnu = make_quick_pick_btn("GNUClient", "/home/lev/linux minecraft thing");
-        let quick_home = make_quick_pick_btn("home", "/home/lev");
+        // Quick-pick directory buttons (paths from env / home — no hardcoded usernames)
+        let home_path = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
+        let sispace_path = std::env::var("SISPACE_HOME").unwrap_or_else(|_| format!("{home_path}/sispace"));
+        let gnuclient_path = std::env::var("SISPACE_GNUCLIENT_PATH").ok().filter(|s| !s.is_empty());
 
-        // Store quick-pick buttons + their paths for active-class sync
-        let quick_picks = Rc::new(vec![
-            (quick_sispace.clone(), "/home/lev/sispace".to_string()),
-            (quick_gnu.clone(), "/home/lev/linux minecraft thing".to_string()),
-            (quick_home.clone(), "/home/lev".to_string()),
-        ]);
+        let quick_sispace = make_quick_pick_btn("sispace", &sispace_path);
+        let quick_gnu = make_quick_pick_btn("GNUClient", gnuclient_path.as_deref().unwrap_or(""));
+        let quick_home = make_quick_pick_btn("home", &home_path);
+        if gnuclient_path.is_none() {
+            quick_gnu.set_visible(false);
+        }
 
-        // Wire quick-pick callbacks — also update active class
-        {
-            let cwd = Rc::clone(&cwd_state);
-            let lbl = path_label.clone();
-            let picks = Rc::clone(&quick_picks);
-            quick_sispace.connect_clicked(move |_| {
-                *cwd.borrow_mut() = "/home/lev/sispace".to_string();
-                update_path_label(&lbl, &cwd.borrow());
-                for (btn, path) in picks.iter() {
-                    if *path == "/home/lev/sispace" {
-                        btn.add_css_class("active");
-                    } else {
-                        btn.remove_css_class("active");
-                    }
-                }
-            });
+        let mut pick_entries: Vec<(Button, String)> = vec![
+            (quick_sispace.clone(), sispace_path.clone()),
+            (quick_home.clone(), home_path.clone()),
+        ];
+        if let Some(ref gnu_path) = gnuclient_path {
+            pick_entries.insert(1, (quick_gnu.clone(), gnu_path.clone()));
         }
-        {
+        let quick_picks = Rc::new(pick_entries);
+
+        for (btn, path) in quick_picks.iter() {
             let cwd = Rc::clone(&cwd_state);
             let lbl = path_label.clone();
             let picks = Rc::clone(&quick_picks);
-            quick_gnu.connect_clicked(move |_| {
-                *cwd.borrow_mut() = "/home/lev/linux minecraft thing".to_string();
+            let target = path.clone();
+            btn.connect_clicked(move |_| {
+                *cwd.borrow_mut() = target.clone();
                 update_path_label(&lbl, &cwd.borrow());
-                for (btn, path) in picks.iter() {
-                    if *path == "/home/lev/linux minecraft thing" {
-                        btn.add_css_class("active");
-                    } else {
-                        btn.remove_css_class("active");
-                    }
-                }
-            });
-        }
-        {
-            let cwd = Rc::clone(&cwd_state);
-            let lbl = path_label.clone();
-            let picks = Rc::clone(&quick_picks);
-            quick_home.connect_clicked(move |_| {
-                *cwd.borrow_mut() = "/home/lev".to_string();
-                update_path_label(&lbl, &cwd.borrow());
-                for (btn, path) in picks.iter() {
-                    if *path == "/home/lev" {
-                        btn.add_css_class("active");
-                    } else {
-                        btn.remove_css_class("active");
-                    }
-                }
+                sync_active_quick_pick(&cwd.borrow(), &picks);
             });
         }
 

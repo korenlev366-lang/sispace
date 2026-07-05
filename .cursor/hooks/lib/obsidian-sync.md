@@ -2,8 +2,8 @@
 
 Repo markdown files are the **source of truth**. Obsidian vault notes under `Harness/` are a searchable mirror updated automatically by the post-task SDK chain.
 
-- **Vault root:** `/home/lev/harness vault` (from `harness/config/obsidian.yaml`)
-- **Harness directory:** `/home/lev/harness vault/Harness/`
+- **Vault root:** your Obsidian vault path (`harness/config/obsidian.yaml` or `OBSIDIAN_VAULT_ROOT`)
+- **Harness directory:** `{vault_root}/Harness/`
 
 ## Vault layout
 

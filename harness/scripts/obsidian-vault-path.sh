@@ -13,6 +13,9 @@ if [ -f "$CONFIG" ]; then
     vault_prefix=$prefix_line
   fi
 fi
+if [ -n "${OBSIDIAN_VAULT_ROOT:-}" ]; then
+  vault_root=$OBSIDIAN_VAULT_ROOT
+fi
 printf "OBSIDIAN_VAULT_ROOT='%s'\n" "$vault_root"
 printf "OBSIDIAN_VAULT_PREFIX='%s'\n" "$vault_prefix"
 printf "OBSIDIAN_HARNESS_DIR='%s/%s'\n" "$vault_root" "$vault_prefix"
