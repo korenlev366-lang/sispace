@@ -53,10 +53,12 @@ cargo build --release -p sispace-gtk
 **cursorsi**
 ```bash
 npm run cursorsi:build     # = npm run build --prefix cli
-export OPENROUTER_API_KEY=...   # required for OpenRouter backend (default)
-export CURSOR_API_KEY=...       # required for Cursor backend (/backend cursor)
+export OPENROUTER_API_KEY=...   # required (default OpenRouter backend)
+# export CURSOR_API_KEY=...     # optional — only for /backend cursor
 npm run cursorsi            # = sh cli/run.sh
 ```
+
+Env vars (bash/fish), Obsidian vault, and MCP wiring: [docs/obsidian-setup.md](./docs/obsidian-setup.md).
 
 **Node sidecar** (spawned automatically by the GTK app; run manually for debugging)
 ```bash
@@ -82,6 +84,7 @@ Arch packaging lives in `packaging/PKGBUILD` — builds `sispace-gtk` via `cargo
 - [SISPACE_V2_PLAN.md](./SISPACE_V2_PLAN.md) — pane orchestration (Unix-socket `--event-socket` NDJSON + `PaneIpcHub`)
 - [SISPACE_GTK4_PLAN.md](./SISPACE_GTK4_PLAN.md) — GTK4 migration plan
 - [CURSORSI_CLI_PLAN.md](./CURSORSI_CLI_PLAN.md) — cursorsi architecture
+- [docs/obsidian-setup.md](./docs/obsidian-setup.md) — Obsidian vault, API keys, Cursor MCP
 - [AGENTS.md](./AGENTS.md) — agent/harness conventions
 
 ---
