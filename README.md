@@ -88,4 +88,8 @@ Arch packaging lives in `packaging/PKGBUILD` — builds `sispace-gtk` via `cargo
 
 ## Security
 
-This repo is **private**. Never commit API keys, `.env` files, or the launch script — `~/.local/bin/sispace-launch.sh` stays outside the repo and is gitignored. See `.gitignore` for the full exclusion list.
+**Do not paste secrets into this repo, issues, PRs, or agent chat.** Yes, this means you.
+
+Keep auth material in your local shell — not in git, chat logs, or task screenshots. Export what cursorsi and the harness need before you run them; never commit dotenv files, auth strings, or launch scripts that embed secrets. Local-only paths like `~/.local/bin/sispace-launch.sh` stay outside the repo; see `.gitignore` for what stays out of git.
+
+If you already pasted something sensitive somewhere it should not be: revoke and reissue it immediately. We do not want your secrets — do not paste keys into issues, PRs, or agent chat and expect that to end well.
