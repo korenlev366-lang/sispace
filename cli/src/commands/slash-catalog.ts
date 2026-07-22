@@ -56,7 +56,7 @@ export const SLASH_COMMAND_DESCRIPTIONS: Record<SlashCommandName, string> = {
   harness: "Harness status summary",
   "harness-compress": "Re-compress lesson index — regenerate Flash oneliners for all accepted lessons",
   help: "List all slash commands",
-  memory: "Show/toggle auto-memory and auto-skill (.cursorsi/)",
+  memory: "Show/toggle auto-memory · extract · review pending skills",
   model: "Choose orchestrator model (Cursor catalog UI)",
   plan: "Draft a plan, then Build or Revise",
   recall: "Obsidian FTS lesson recall (next turn)",

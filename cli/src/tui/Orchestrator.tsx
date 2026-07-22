@@ -42,6 +42,11 @@ import {
   BackendPicker,
   type BackendPickerView,
 } from "./BackendPicker.js";
+import {
+  SkillPicker,
+  skillPickerActionAt,
+  SKILL_PICKER_ACTION_COUNT,
+} from "./SkillPicker.js";
 import { processAuthConfirm, processAuthBack, buildListString } from "../commands/auth.js";
 import type { ChatListEntry } from "../session/chat-persist.js";
 import { buildResumeSessionState } from "../session/resume.js";
@@ -87,6 +92,12 @@ import {
 } from "../commands/slash-catalog.js";
 import { pushSessionEndNotify } from "../notify/ntfy.js";
 import { triggerAutoReflectOnSessionEnd } from "../harness/auto-reflect.js";
+import { acceptPendingSkill, triggerAutoSkillProposal } from "../memory/auto-extract.js";
+import {
+  loadPendingSkills,
+  removePendingSkill,
+  type PendingSkillDraft,
+} from "../memory/pending-skills.js";
 import { loadAgentsContextForSession } from "../session/agents-inject.js";
 import { captureGitDiff, hasGitWorktreeChanges } from "../diff/capture.js";
 import { runVerifyAfterAgentTurn } from "../goal/loop.js";
@@ -143,6 +154,7 @@ export function Orchestrator({
     | "question"
     | "auth"
     | "backend"
+    | "skill"
   >("chat");
   const [modelPicker, setModelPicker] = useState<ModelPickerState | null>(null);
   const [modelPickerLoading, setModelPickerLoading] = useState(false);
@@ -170,6 +182,11 @@ export function Orchestrator({
   const [backendCompatProviders, setBackendCompatProviders] = useState<
     string[]
   >([]);
+  const [skillQueue, setSkillQueue] = useState<PendingSkillDraft[]>([]);
+  const [skillIndex, setSkillIndex] = useState(0);
+  const [skillHighlight, setSkillHighlight] = useState(0);
+  const pendingQuitRef = useRef(false);
+  const skillReviewOpenRef = useRef(false);
   const [input, setInput] = useState("");
   const [inputMode, setInputMode] = useState<"prompt" | "slash">("prompt");
   const [slashCandidateIndex, setSlashCandidateIndex] = useState(0);
@@ -551,10 +568,50 @@ export function Orchestrator({
     [pushLine],
   );
 
+  const openSkillPicker = useCallback((skills: PendingSkillDraft[]) => {
+    if (!skills.length) return;
+    setSkillQueue((prev) => {
+      const bySlug = new Map(prev.map((s) => [s.slug, s]));
+      for (const s of skills) {
+        bySlug.set(s.slug, s);
+      }
+      return [...bySlug.values()];
+    });
+    const alreadyOpen = skillReviewOpenRef.current;
+    skillReviewOpenRef.current = true;
+    if (!alreadyOpen) {
+      setSkillIndex(0);
+      setSkillHighlight(0);
+    }
+    // Open immediately — even while the agent is still working.
+    setOverlay("skill");
+  }, []);
+
   const endSession = useCallback(
-    (session: CliSession) => {
+    (
+      session: CliSession,
+      opts?: {
+        deferQuitForSkills?: boolean;
+      },
+    ) => {
       void paneBridgeRef.current.sessionEnd("user_exit");
-      triggerAutoReflectOnSessionEnd(session, { onNotice: pushLine });
+      triggerAutoReflectOnSessionEnd(session, {
+        onNotice: pushLine,
+        onPendingSkills: (skills) => {
+          openSkillPicker(skills);
+          setBusy(false);
+        },
+        onExtractDone: (result) => {
+          if (!opts?.deferQuitForSkills) return;
+          if (pendingQuitRef.current && !result.pendingSkills?.length) {
+            setBusy(false);
+            // No skill review needed — finish quit.
+            if (!skillReviewOpenRef.current) {
+              exit();
+            }
+          }
+        },
+      });
       void pushSessionEndNotify({
         cwd,
         sessionTitle: session.title,
@@ -566,15 +623,58 @@ export function Orchestrator({
         }
       });
     },
-    [cwd, notifyTopicOverride, pushLine],
+    [cwd, exit, notifyTopicOverride, openSkillPicker, pushLine, setBusy],
   );
+
+  const closeSkillPicker = useCallback(
+    (opts?: { exitIfQuitting?: boolean }) => {
+      skillReviewOpenRef.current = false;
+      setSkillQueue([]);
+      setSkillIndex(0);
+      setSkillHighlight(0);
+      setOverlay("chat");
+      if (opts?.exitIfQuitting !== false && pendingQuitRef.current) {
+        exit();
+      }
+    },
+    [exit],
+  );
+
+  const advanceSkillQueue = useCallback(
+    (fromIndex: number) => {
+      const next = fromIndex + 1;
+      if (next >= skillQueue.length) {
+        closeSkillPicker();
+        return;
+      }
+      setSkillIndex(next);
+      setSkillHighlight(0);
+    },
+    [closeSkillPicker, skillQueue.length],
+  );
+
+  useEffect(() => {
+    // Resume any pending auto-skills from a previous session.
+    const pending = loadPendingSkills(cwd);
+    if (pending.length > 0) {
+      pushLine(
+        `› ${pending.length} pending auto-skill(s) — review now or /memory review`,
+      );
+      openSkillPicker(pending);
+    }
+  }, [cwd, openSkillPicker, pushLine]);
 
   useEffect(() => {
     void paneBridgeRef.current.sessionStart();
     return () => {
       clearAgentStreamFlush();
       void paneBridgeRef.current.sessionEnd("unmount");
-      triggerAutoReflectOnSessionEnd(activeRef.current, { onNotice: pushLine });
+      // Skip extract on unmount if quit already started (avoids double + race with picker).
+      if (!pendingQuitRef.current) {
+        triggerAutoReflectOnSessionEnd(activeRef.current, {
+          onNotice: pushLine,
+        });
+      }
     };
   }, [clearAgentStreamFlush, pushLine]);
 
@@ -818,6 +918,13 @@ export function Orchestrator({
         );
         workingSession = { ...workingSession, ...turnSessionPatch };
 
+        // Propose auto-skills as soon as the threshold is met (picker opens
+        // immediately; does not block this turn or the next).
+        triggerAutoSkillProposal(workingSession, {
+          onNotice: pushLine,
+          onPendingSkills: openSkillPicker,
+        });
+
         if (result.modelId) {
           workingSession = { ...workingSession, modelId: result.modelId };
           setSessionState((prev) =>
@@ -921,6 +1028,7 @@ export function Orchestrator({
       clearAgentStreamFlush,
       flushAgentStreamLine,
       scheduleAgentStreamFlush,
+      openSkillPicker,
     ],
   );
 
@@ -1076,6 +1184,15 @@ export function Orchestrator({
           setOverlay("backend");
           return;
         }
+        if (result.openSkillPicker) {
+          pushLine(
+            result.ok
+              ? `› ${result.message || "Review auto-skills"}`
+              : `! ${result.message}`,
+          );
+          openSkillPicker(result.openSkillPicker);
+          return;
+        }
         if (result.replaceSessionState) {
           closeSessionAgent(session.id);
           setSessionState(result.replaceSessionState);
@@ -1116,6 +1233,7 @@ export function Orchestrator({
     openModelPicker,
     openChatPicker,
     openPlanPicker,
+    openSkillPicker,
   ]);
 
   const applyClipboardPaste = useCallback(async () => {
@@ -1174,9 +1292,16 @@ export function Orchestrator({
       lastCtrlCAtRef.current = now;
 
       if (rapid) {
+        if (pendingQuitRef.current || skillReviewOpenRef.current) {
+          // Force quit while waiting on extract / skill review.
+          exit();
+          return;
+        }
         turnAbortRef.current?.abort();
-        endSession(active);
-        exit();
+        pendingQuitRef.current = true;
+        setBusy(true, "Saving memory");
+        pushLine("› Saving memory… (Ctrl+C again to force quit)");
+        endSession(active, { deferQuitForSkills: true });
         return;
       }
 
@@ -1634,6 +1759,55 @@ export function Orchestrator({
       return;
     }
 
+    if (overlay === "skill") {
+      if (key.escape) {
+        closeSkillPicker();
+        return;
+      }
+      if (key.upArrow) {
+        setSkillHighlight((i) =>
+          i <= 0 ? SKILL_PICKER_ACTION_COUNT - 1 : i - 1,
+        );
+        return;
+      }
+      if (key.downArrow) {
+        setSkillHighlight((i) =>
+          i >= SKILL_PICKER_ACTION_COUNT - 1 ? 0 : i + 1,
+        );
+        return;
+      }
+      if (key.return) {
+        const action = skillPickerActionAt(skillHighlight);
+        const draft = skillQueue[skillIndex];
+        if (!draft) {
+          closeSkillPicker();
+          return;
+        }
+        if (action === "skip_all") {
+          pushLine("› skill review skipped — pending kept for later");
+          closeSkillPicker();
+          return;
+        }
+        if (action === "reject") {
+          removePendingSkill(cwd, draft.slug);
+          pushLine(`› skill rejected ${draft.slug}`);
+          advanceSkillQueue(skillIndex);
+          return;
+        }
+        // accept
+        const written = acceptPendingSkill(cwd, draft);
+        removePendingSkill(cwd, draft.slug);
+        if (written.ok) {
+          pushLine(`› skill accepted ${draft.slug}`);
+        } else {
+          pushLine(`! skill accept failed ${draft.slug}: ${written.error}`);
+        }
+        advanceSkillQueue(skillIndex);
+        return;
+      }
+      return;
+    }
+
     if (overlay === "backend") {
       if (key.escape) {
         if (backendView === "compatible") {
@@ -1867,7 +2041,9 @@ export function Orchestrator({
         />
       ) : null}
 
-      {/* Hide transcript while plan/question/model/auth/backend modals are open (keep UI under prompt). */}
+      {/* Hide transcript while plan/question/model/auth/backend modals are open.
+          Skill picker stays at the bottom while transcript keeps updating so the
+          agent can continue working during Accept/Reject. */}
       {(overlay === "plan" && planDraft) ||
       (overlay === "question" && questionDraft) ||
       overlay === "model" ||
@@ -2022,6 +2198,14 @@ export function Orchestrator({
             compatibleProviders={backendCompatProviders}
           />
         </Box>
+      ) : null}
+
+      {overlay === "skill" ? (
+        <SkillPicker
+          skills={skillQueue}
+          index={skillIndex}
+          highlightIndex={skillHighlight}
+        />
       ) : null}
 
       {busyUi ? (

@@ -1,6 +1,6 @@
 {
   "name": "cursorsi",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "CursorSI — terminal-native Cursor/OpenRouter agent (Ink TUI) with ask_user MCP, hooks, and harness scaffolding",
   "type": "module",
   "license": "MIT",

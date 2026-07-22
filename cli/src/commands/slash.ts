@@ -65,6 +65,8 @@ export interface SlashResult {
   openAuthDialog?: { view: AuthView; data: AuthDialogData };
   /** Open interactive backend picker (OpenRouter / Cursor / Compatible). */
   openBackendPicker?: true;
+  /** Open auto-skill accept/reject picker. */
+  openSkillPicker?: import("../memory/pending-skills.js").PendingSkillDraft[];
 }
 
 export interface SlashContext {
@@ -721,11 +723,34 @@ async function handleMemory(
     ctx.pushLine("  /memory auto-memory on|off");
     ctx.pushLine("  /memory auto-skill on|off");
     ctx.pushLine("  /memory extract   — run extract now");
+    ctx.pushLine("  /memory review    — accept/reject pending auto-skills");
+    try {
+      const { loadPendingSkills } = await import("../memory/pending-skills.js");
+      const pending = loadPendingSkills(ctx.session.cwd);
+      if (pending.length > 0) {
+        ctx.pushLine(`  pending skills: ${pending.map((s) => s.slug).join(", ")}`);
+      }
+    } catch {
+      // ignore
+    }
     return { ok: true, message: "Memory settings shown above." };
   }
 
   const [key, valueRaw] = rest.split(/\s+/);
   const value = (valueRaw ?? "").toLowerCase();
+
+  if (key === "review") {
+    const { loadPendingSkills } = await import("../memory/pending-skills.js");
+    const pending = loadPendingSkills(ctx.session.cwd);
+    if (pending.length === 0) {
+      return { ok: true, message: "No pending auto-skills to review." };
+    }
+    return {
+      ok: true,
+      message: `Review ${pending.length} pending skill(s)`,
+      openSkillPicker: pending,
+    };
+  }
 
   if (key === "extract") {
     ctx.setBusy(true, "Extracting memory");
@@ -742,12 +767,25 @@ async function handleMemory(
           message: `Extract skipped: ${result.skipped ?? "unknown"}`,
         };
       }
+      for (const name of result.memoryCreated ?? []) {
+        ctx.pushLine(`› memory created ${name}`);
+      }
+      for (const name of result.memoryUpdated ?? []) {
+        ctx.pushLine(`› memory updated ${name}`);
+      }
+      if (result.pendingSkills?.length) {
+        return {
+          ok: true,
+          message: `skill proposed ${result.pendingSkills.map((s) => s.slug).join(", ")}`,
+          openSkillPicker: result.pendingSkills,
+        };
+      }
       const bits = [
-        ...(result.memoryFiles?.length
-          ? [`memory ${result.memoryFiles.join(",")}`]
+        ...(result.memoryCreated?.length
+          ? [`created ${result.memoryCreated.join(",")}`]
           : []),
-        ...(result.skillSlugs?.length
-          ? [`skills ${result.skillSlugs.join(",")}`]
+        ...(result.memoryUpdated?.length
+          ? [`updated ${result.memoryUpdated.join(",")}`]
           : []),
       ];
       return {
@@ -777,7 +815,7 @@ async function handleMemory(
   return {
     ok: false,
     message:
-      "Usage: /memory | /memory auto-memory on|off | /memory auto-skill on|off | /memory extract",
+      "Usage: /memory | /memory auto-memory on|off | /memory auto-skill on|off | /memory extract | /memory review",
   };
 }
 

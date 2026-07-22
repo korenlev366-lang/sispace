@@ -25,7 +25,12 @@ import {
   AUTO_SKILL_SOURCE,
   ensureProjectMemoryDirs,
   projectMemoryDir,
+  projectSkillsDir,
 } from "./paths.js";
+import {
+  enqueuePendingSkills,
+  type PendingSkillDraft,
+} from "./pending-skills.js";
 
 type GlobalCk = {
   __cursorsiCk?: string;
@@ -74,6 +79,147 @@ type ExtractPayload = {
 };
 
 const EXTRACTED_SESSION_IDS = new Set<string>();
+/** Sessions that already started a skill-only proposal (mid-session or end). */
+const SKILL_PROPOSAL_STARTED_IDS = new Set<string>();
+
+function emitExtractNotices(
+  result: AutoExtractResult,
+  opts?: {
+    onNotice?: (line: string) => void;
+    onPendingSkills?: (skills: PendingSkillDraft[]) => void;
+  },
+): void {
+  for (const name of result.memoryCreated ?? []) {
+    opts?.onNotice?.(`› memory created ${name}`);
+  }
+  for (const name of result.memoryUpdated ?? []) {
+    opts?.onNotice?.(`› memory updated ${name}`);
+  }
+  if (result.pendingSkills?.length) {
+    opts?.onPendingSkills?.(result.pendingSkills);
+    opts?.onNotice?.(
+      `› skill proposed ${result.pendingSkills.map((s) => s.slug).join(", ")} — review in picker`,
+    );
+  }
+}
+
+/**
+ * Mid-session skill proposal: fire once the tool-call threshold is met.
+ * Opens SkillPicker immediately via onPendingSkills; does not block the agent.
+ * Memory extract still runs on session end.
+ */
+export function triggerAutoSkillProposal(
+  session: CliSession,
+  opts?: {
+    onNotice?: (line: string) => void;
+    onPendingSkills?: (skills: PendingSkillDraft[]) => void;
+    onDone?: (result: AutoExtractResult) => void;
+  },
+): void {
+  const done = (result: AutoExtractResult) => {
+    opts?.onDone?.(result);
+  };
+
+  if (getCliOptions().noReflect) {
+    done({ launched: false, skipped: "no_reflect" });
+    return;
+  }
+
+  const flags = resolveMemorySettings();
+  if (!flags.enableAutoSkill || session.skillsDirTouched) {
+    done({ launched: false, skipped: "disabled" });
+    return;
+  }
+
+  const toolCallCount = session.toolCallCount ?? 0;
+  if (toolCallCount < AUTO_SKILL_TOOL_THRESHOLD) {
+    done({ launched: false, skipped: "below_threshold" });
+    return;
+  }
+
+  if (SKILL_PROPOSAL_STARTED_IDS.has(session.id)) {
+    done({ launched: false, skipped: "already_proposed" });
+    return;
+  }
+  SKILL_PROPOSAL_STARTED_IDS.add(session.id);
+
+  void runAutoExtract(session, {
+    wantMemory: false,
+    wantSkill: true,
+    toolCallCount,
+  })
+    .then((result) => {
+      if (result.launched) {
+        emitExtractNotices(result, opts);
+      }
+      done(result);
+    })
+    .catch(() => {
+      done({ launched: false, skipped: "extract_error" });
+    });
+}
+
+/**
+ * Fire-and-forget extract after session end. Safe to call multiple times per session id.
+ */
+export function triggerAutoExtractOnSessionEnd(
+  session: CliSession,
+  opts?: {
+    onNotice?: (line: string) => void;
+    onPendingSkills?: (skills: PendingSkillDraft[]) => void;
+    onDone?: (result: AutoExtractResult) => void;
+  },
+): void {
+  const done = (result: AutoExtractResult) => {
+    opts?.onDone?.(result);
+  };
+
+  if (getCliOptions().noReflect) {
+    done({ launched: false, skipped: "no_reflect" });
+    return;
+  }
+  if (EXTRACTED_SESSION_IDS.has(session.id)) {
+    done({ launched: false, skipped: "already_extracted" });
+    return;
+  }
+  EXTRACTED_SESSION_IDS.add(session.id);
+
+  const flags = resolveMemorySettings();
+  if (!flags.enableAutoMemory && !flags.enableAutoSkill) {
+    done({ launched: false, skipped: "disabled" });
+    return;
+  }
+
+  const toolCallCount = session.toolCallCount ?? 0;
+  const skillAlreadyStarted = SKILL_PROPOSAL_STARTED_IDS.has(session.id);
+  const wantSkill =
+    flags.enableAutoSkill &&
+    !session.skillsDirTouched &&
+    toolCallCount >= AUTO_SKILL_TOOL_THRESHOLD &&
+    !skillAlreadyStarted;
+  const wantMemory = flags.enableAutoMemory;
+
+  if (!wantMemory && !wantSkill) {
+    done({ launched: false, skipped: "nothing_to_extract" });
+    return;
+  }
+
+  if (wantSkill) {
+    SKILL_PROPOSAL_STARTED_IDS.add(session.id);
+  }
+
+  // Background — caller may wait via onDone (e.g. quit + skill review).
+  void runAutoExtract(session, { wantMemory, wantSkill, toolCallCount })
+    .then((result) => {
+      if (result.launched) {
+        emitExtractNotices(result, opts);
+      }
+      done(result);
+    })
+    .catch(() => {
+      done({ launched: false, skipped: "extract_error" });
+    });
+}
 
 function slugify(raw: string): string {
   return raw
@@ -236,55 +382,16 @@ async function runExtractModel(
 export interface AutoExtractResult {
   launched: boolean;
   skipped?: string;
+  /** Filenames newly created under .cursorsi/memory/ */
+  memoryCreated?: string[];
+  /** Filenames updated under .cursorsi/memory/ */
+  memoryUpdated?: string[];
+  /** @deprecated use memoryCreated/memoryUpdated */
   memoryFiles?: string[];
+  /** Skills accepted into pending queue (not yet written). */
+  pendingSkills?: PendingSkillDraft[];
   skillSlugs?: string[];
   summary?: string;
-}
-
-/**
- * Fire-and-forget extract after session end. Safe to call multiple times per session id.
- */
-export function triggerAutoExtractOnSessionEnd(
-  session: CliSession,
-  opts?: { onNotice?: (line: string) => void },
-): void {
-  if (getCliOptions().noReflect) return;
-  if (EXTRACTED_SESSION_IDS.has(session.id)) return;
-  EXTRACTED_SESSION_IDS.add(session.id);
-
-  const flags = resolveMemorySettings();
-  if (!flags.enableAutoMemory && !flags.enableAutoSkill) return;
-
-  const toolCallCount = session.toolCallCount ?? 0;
-  const wantSkill =
-    flags.enableAutoSkill &&
-    !session.skillsDirTouched &&
-    toolCallCount >= AUTO_SKILL_TOOL_THRESHOLD;
-  const wantMemory = flags.enableAutoMemory;
-
-  if (!wantMemory && !wantSkill) return;
-
-  // Background — do not block quit.
-  void runAutoExtract(session, { wantMemory, wantSkill, toolCallCount })
-    .then((result) => {
-      if (!result.launched) return;
-      const bits: string[] = [];
-      if (result.memoryFiles?.length) {
-        bits.push(`memory:${result.memoryFiles.join(",")}`);
-      }
-      if (result.skillSlugs?.length) {
-        bits.push(`skills:${result.skillSlugs.join(",")}`);
-      }
-      if (bits.length === 0 && result.summary) {
-        bits.push(result.summary);
-      }
-      if (bits.length > 0) {
-        opts?.onNotice?.(`› auto-extract: ${bits.join(" · ")}`);
-      }
-    })
-    .catch(() => {
-      // silent — background job
-    });
 }
 
 export async function runAutoExtract(
@@ -302,6 +409,7 @@ export async function runAutoExtract(
   }
 
   const { memoryDir, skillsDir } = ensureProjectMemoryDirs(session.cwd);
+  void skillsDir;
   let existingMemoryNames: string[] = [];
   try {
     existingMemoryNames = readdirSync(memoryDir).filter((f) => f.endsWith(".md"));
@@ -332,8 +440,9 @@ export async function runAutoExtract(
     return { launched: false, skipped: "bad_json" };
   }
 
-  const memoryFiles: string[] = [];
-  const skillSlugs: string[] = [];
+  const memoryCreated: string[] = [];
+  const memoryUpdated: string[] = [];
+  const pendingSkills: PendingSkillDraft[] = [];
 
   if (opts.wantMemory && Array.isArray(payload.memories)) {
     for (const item of payload.memories.slice(0, 3)) {
@@ -341,8 +450,10 @@ export async function runAutoExtract(
       const content = String(item?.content ?? "").trim();
       if (!name || !content) continue;
       const path = join(memoryDir, name);
+      const existed = existsSync(path);
       writeFileSync(path, content.endsWith("\n") ? content : `${content}\n`, "utf8");
-      memoryFiles.push(name);
+      if (existed) memoryUpdated.push(name);
+      else memoryCreated.push(name);
     }
   }
 
@@ -350,17 +461,24 @@ export async function runAutoExtract(
     for (const item of payload.skills.slice(0, MAX_NEW_SKILLS)) {
       const slug = slugify(String(item?.slug ?? ""));
       if (!slug) continue;
-      const dir = join(skillsDir, slug);
-      const skillPath = join(dir, "SKILL.md");
+      const skillPath = join(projectSkillsDir(session.cwd), slug, "SKILL.md");
       if (!canWriteAutoSkill(skillPath)) continue;
       const content = capSkillLines(
         ensureAutoSkillFrontmatter(String(item?.content ?? ""), slug),
       );
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(skillPath, content, "utf8");
-      skillSlugs.push(slug);
+      pendingSkills.push({
+        slug,
+        content,
+        sessionId: session.id,
+        createdAt: new Date().toISOString(),
+      });
     }
   }
+
+  const queued =
+    pendingSkills.length > 0
+      ? enqueuePendingSkills(session.cwd, pendingSkills)
+      : [];
 
   // Touch marker for debugging
   try {
@@ -370,8 +488,9 @@ export async function runAutoExtract(
         {
           at: new Date().toISOString(),
           sessionId: session.id,
-          memoryFiles,
-          skillSlugs,
+          memoryCreated,
+          memoryUpdated,
+          pendingSkills: pendingSkills.map((s) => s.slug),
           summary: payload.summary ?? null,
           toolCallCount: opts.toolCallCount,
         },
@@ -384,10 +503,44 @@ export async function runAutoExtract(
     // ignore
   }
 
+  const memoryFiles = [...memoryCreated, ...memoryUpdated];
   return {
     launched: true,
+    memoryCreated,
+    memoryUpdated,
     memoryFiles,
-    skillSlugs,
+    pendingSkills:
+      pendingSkills.length > 0
+        ? queued.filter((s) => pendingSkills.some((p) => p.slug === s.slug))
+        : [],
+    skillSlugs: pendingSkills.map((s) => s.slug),
     summary: payload.summary,
   };
+}
+
+/** Persist an accepted pending skill to .cursorsi/skills/<slug>/SKILL.md */
+export function acceptPendingSkill(
+  cwd: string,
+  draft: PendingSkillDraft,
+): { ok: boolean; path?: string; error?: string } {
+  const slug = slugify(draft.slug);
+  if (!slug) return { ok: false, error: "invalid slug" };
+  const dir = join(projectSkillsDir(cwd), slug);
+  const skillPath = join(dir, "SKILL.md");
+  if (!canWriteAutoSkill(skillPath)) {
+    return { ok: false, error: `skill "${slug}" exists and is not auto-skill` };
+  }
+  try {
+    mkdirSync(dir, { recursive: true });
+    const content = capSkillLines(
+      ensureAutoSkillFrontmatter(draft.content, slug),
+    );
+    writeFileSync(skillPath, content, "utf8");
+    return { ok: true, path: skillPath };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
