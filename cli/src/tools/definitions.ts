@@ -43,6 +43,17 @@ const bgReadParam = z.object({
   id: z.string().describe("The unique identifier string of the background session to read from."),
 });
 
+const askUserParam = z.object({
+  prompt: z
+    .string()
+    .describe("Clear question for the user — ask only when the task is ambiguous."),
+  options: z
+    .array(z.string())
+    .max(8)
+    .optional()
+    .describe("Optional multiple-choice answers (2–8 short options)."),
+});
+
 /**
  * Shared context schema: data available to every tool's execute function.
  * Set on callModel's `sharedContextSchema`.
@@ -366,6 +377,22 @@ export const bgReadBufferTool = tool<SharedToolContext>({
   },
 });
 
+export const askUserTool = tool<SharedToolContext>({
+  name: "ask_user",
+  description:
+    "Ask the user a clarifying question when the request is ambiguous or a critical choice is needed before proceeding. Prefer multiple-choice options when possible. Do not ask those questions only in chat prose — use this tool so the QuestionPicker UI appears. Do not use for things you can discover with other tools. The turn pauses until the user answers.",
+  inputSchema: askUserParam,
+  execute: async (params) => {
+    const { askUser } = await import("./ask-user.js");
+    const prompt = String((params as { prompt?: unknown }).prompt ?? "");
+    const rawOpts = (params as { options?: unknown }).options;
+    const options = Array.isArray(rawOpts)
+      ? rawOpts.map((o) => String(o))
+      : undefined;
+    return askUser({ prompt, options });
+  },
+});
+
 /** All tools available when Obsidian is configured. */
 export const ALL_TOOLS = [
   readFileTool,
@@ -375,6 +402,7 @@ export const ALL_TOOLS = [
   listDirTool,
   searchFilesTool,
   editFileTool,
+  askUserTool,
   bgSpawnProcessTool,
   bgReadBufferTool,
   obsidianReadTool,
@@ -396,6 +424,7 @@ export const NON_OBSIDIAN_TOOLS = [
   listDirTool,
   searchFilesTool,
   editFileTool,
+  askUserTool,
   bgSpawnProcessTool,
   bgReadBufferTool,
   webSearchTool,

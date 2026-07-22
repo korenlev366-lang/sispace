@@ -34,8 +34,8 @@ export function createOpenRouterClient(apiKey?: string): OpenRouter {
   const key = resolveOpenRouterKey(apiKey);
   return new OpenRouter({
     apiKey: key,
-    httpReferer: "https://github.com/lev/sispace",
-    appTitle: "SISpace",
+    httpReferer: "https://github.com/korenlev366-lang/sispace",
+    appTitle: "cursorsi",
   });
 }
 

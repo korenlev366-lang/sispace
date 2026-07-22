@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
@@ -8,9 +10,19 @@ type GlobalDb = { __cursorsiDbPath?: string };
 let cachedRead: InstanceType<typeof DatabaseSync> | null = null;
 let cachedWrite: InstanceType<typeof DatabaseSync> | null = null;
 
+/** Default shared kanban DB — matches cli/run.sh. */
+export function defaultTasksDbPath(): string {
+  const fromEnv =
+    process.env.SISPACE_DB_PATH?.trim() ||
+    process.env.CURSORSI_DB_PATH?.trim();
+  if (fromEnv) return fromEnv;
+  return join(homedir(), ".local", "share", "sispace", "tasks.db");
+}
+
 export function resolveDbPath(): string | null {
-  const path = (globalThis as GlobalDb).__cursorsiDbPath?.trim();
-  return path || null;
+  const explicit = (globalThis as GlobalDb).__cursorsiDbPath?.trim();
+  if (explicit) return explicit;
+  return defaultTasksDbPath();
 }
 
 export function openSharedDbRead(): InstanceType<typeof DatabaseSync> | null {

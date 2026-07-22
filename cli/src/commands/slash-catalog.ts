@@ -5,8 +5,10 @@
 
 export const SLASH_COMMANDS = [
   "apply",
+  "auth",
   "backend",
   "bug",
+  "chats",
   "compact",
   "curate",
   "doctor",
@@ -18,15 +20,20 @@ export const SLASH_COMMANDS = [
   "harness",
   "harness-compress",
   "help",
+  "memory",
   "model",
+  "plan",
   "recall",
   "reflect",
   "reject",
+  "rename",
+  "resume",
   "search",
   "settings",
   "subagent-model",
   "subagents",
   "swarm",
+  "test-ask",
 ] as const;
 
 export type SlashCommandName = (typeof SLASH_COMMANDS)[number];
@@ -34,8 +41,10 @@ export type SlashCommandName = (typeof SLASH_COMMANDS)[number];
 /** Short descriptions for TUI autocomplete dropdown (Hermes-style). */
 export const SLASH_COMMAND_DESCRIPTIONS: Record<SlashCommandName, string> = {
   apply: "Harness apply with locked-layer guard",
-  backend: "Show or change LLM backend (openrouter|cursor)",
+  auth: "Store API keys / compatible endpoints (~/.cursorsi/credentials.json)",
+  backend: "Pick LLM backend (UI) — or openrouter|cursor|compatible <name>",
   bug: "Load bug-fix skill bundle for next turn",
+  chats: "Pick, resume, or rename a saved chat",
   compact: "Summarize session context (Pi-style compaction)",
   curate: "Skill curation proposals (read-only emit)",
   doctor: "Meta-readiness doctor check",
@@ -47,15 +56,20 @@ export const SLASH_COMMAND_DESCRIPTIONS: Record<SlashCommandName, string> = {
   harness: "Harness status summary",
   "harness-compress": "Re-compress lesson index — regenerate Flash oneliners for all accepted lessons",
   help: "List all slash commands",
+  memory: "Show/toggle auto-memory and auto-skill (.cursorsi/)",
   model: "Choose orchestrator model (Cursor catalog UI)",
+  plan: "Draft a plan, then Build or Revise",
   recall: "Obsidian FTS lesson recall (next turn)",
   reflect: "Run harness reflection (invoke-chain)",
   reject: "Reject a harness proposal by ID",
+  rename: "Rename the active saved chat",
+  resume: "Resume a saved chat by task id",
   search: "FTS task/session search (shared DB)",
   settings: "Show or change user settings (persistent ~/.config/cursorsi/settings.json)",
   "subagent-model": "Choose pipeline subagent model (excludes orchestrator)",
   subagents: "Toggle pipeline subagent decomposition (on/off)",
   swarm: "Show swarm graph for linked task",
+  "test-ask": "Open QuestionPicker (smoke-test ask UI)",
 };
 
 export function slashCommandDescription(name: SlashCommandName): string {
@@ -106,25 +120,16 @@ export function isSlashCommandPrefix(
   return findActiveSlashSpan(input, cursor) !== null;
 }
 
-/** Pull `/cmd …` out of a prompt line (line-start or after whitespace). */
+/**
+ * Pull a slash invocation only when the whole prompt is a command.
+ * Mixed lines like `please /help` are left alone so they go to the agent.
+ */
 export function extractSlashInvocation(input: string): string | null {
   const trimmed = input.trim();
-  if (!trimmed) {
+  if (!trimmed.startsWith("/")) {
     return null;
   }
-
-  if (trimmed.startsWith("/")) {
-    return trimmed;
-  }
-
-  const matches = [
-    ...trimmed.matchAll(/(?:^|\s)(\/[a-z][a-z0-9_-]*(?:\s+[^\s/][^\n]*)?)/gi),
-  ];
-  if (matches.length === 0) {
-    return null;
-  }
-
-  return matches[matches.length - 1]![1]!.trim();
+  return trimmed;
 }
 
 /** First token after `/` in a slash invocation (lowercased), or null. */
@@ -143,7 +148,7 @@ export function isRegisteredSlashCommand(key: string): boolean {
 
 /**
  * Like extractSlashInvocation, but returns null unless the command name is registered.
- * Unrecognized `/…` lines are sent to the agent as plain text.
+ * Unrecognized `/…` lines and any prompt with leading non-slash text go to the agent.
  */
 export function extractKnownSlashInvocation(input: string): string | null {
   const invocation = extractSlashInvocation(input);

@@ -34,6 +34,8 @@
     "cursorsi": "sh cli/run.sh",
     "cursorsi:build": "npm run build --prefix cli",
     "cursorsi:install": "npm install --prefix cli",
+    "cursorsi:sync-templates": "npm run sync:templates --prefix cli",
+    "cursorsi:pack": "npm pack --prefix cli",
     "harness:bootstrap": "sh harness/scripts/harness-bootstrap.sh",
     "install-cli": "node scripts/install-cli.mjs"
   }

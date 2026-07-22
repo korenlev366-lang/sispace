@@ -12,6 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = join(root, "cli/bin/cursorsi.mjs");
 const binDir = join(homedir(), ".local/bin");
 const linkPath = join(binDir, "cursorsi");
+const legacyPaths = [join(binDir, "cursorsi.sh"), join(binDir, "cursorsi.mjs")];
 
 if (!existsSync(source)) {
   console.error(`install-cli: missing ${source} — run npm run cursorsi:build first`);
@@ -20,6 +21,18 @@ if (!existsSync(source)) {
 
 mkdirSync(binDir, { recursive: true });
 chmodSync(source, 0o755);
+
+for (const legacyPath of legacyPaths) {
+  if (existsSync(legacyPath)) {
+    try {
+      unlinkSync(legacyPath);
+      console.log(`install-cli: removed legacy ${legacyPath}`);
+    } catch (err) {
+      console.error(`install-cli: remove legacy ${legacyPath}: ${err}`);
+      process.exit(1);
+    }
+  }
+}
 
 if (existsSync(linkPath)) {
   try {
@@ -34,3 +47,4 @@ symlinkSync(source, linkPath);
 chmodSync(linkPath, 0o755);
 
 console.log(`install-cli: ${linkPath} → ${source}`);
+console.log(`install-cli: ensure ~/.local/bin is on PATH, then run: cursorsi --version`);

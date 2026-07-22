@@ -22,6 +22,15 @@ __pycache__/
 *.key
 sispace-launch.sh
 **/settings.json
+**/.cursorsi/credentials.json
+**/credentials.json
+
+# Cursor hook runtime state (per-session injection markers)
+.cursor/hooks/state/
+
+# Generated npm package templates (rebuilt via cli: npm run sync:templates)
+cli/templates/
+cli/*.tgz
 
 # Databases
 *.db
@@ -59,6 +68,20 @@ screenshot_*.png
 
 # Security notes
 security_audit.md
+timewarp-re-vm/
+timewarp-extract/
+*.zip
+*.exe
+*.dll
+*.iso
+*.bin
+*.dump
+*.rar
+*.gpr
+*.lib
+*.map
+*auth_session*
+.cursorsi/memory/.last-extract.json
 
 # Local harness state (seeded from harness/scaffold/ via harness-bootstrap.sh)
 harness/memory/*

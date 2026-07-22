@@ -1,0 +1,3 @@
+## Project conventions
+
+- **Sidecar SDK patching**: When patching the Cursor SDK (`@cursor/sdk`), write the patched index file as `index.cursorsi-patched.js` **next to** the vendor `index.js` in `node_modules/@cursor/sdk/dist/esm/`. Do **not** create a `.cursorsi-patched/` subdirectory, because webpack lazy chunks (e.g. `642.index.js`) resolve relative to the `index.js` location, and a subdirectory breaks `Cursor.models.list()`. The same patch also guards Bash/Zsh `stdio[3]` state writes with `__cursorsiShellEpipeGuard` so a dead child cannot raise uncaught `write EPIPE` and kill the TUI. Crash handlers treat `EPIPE` / `ECONNRESET` / `setRawMode EIO` as benign (log only, no exit).

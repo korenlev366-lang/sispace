@@ -19,9 +19,8 @@ export async function validateSessionStateModels(
   credential: string,
 ): Promise<{ state: SessionState; remapped: ModelResolveReport[] }> {
   const settings = loadUserSettings();
-  // Cursor backend models don't need OpenRouter catalog validation —
-  // the Cursor SDK validates at Agent.create time.
-  if (settings.backend === "cursor") {
+  // Cursor / compatible backends don't use the OpenRouter YAML catalog remap.
+  if (settings.backend === "cursor" || settings.backend === "compatible") {
     return { state, remapped: [] };
   }
 
@@ -63,9 +62,8 @@ export async function ensureSessionModel(
   credential: string,
 ): Promise<{ session: CliSession; remapped: boolean }> {
   const settings = loadUserSettings();
-  // Cursor backend models don't go through the OpenRouter catalog —
-  // the Cursor SDK validates at Agent.create time. Skip remapping.
-  if (settings.backend === "cursor") {
+  // Cursor / compatible backends skip OpenRouter YAML remapping.
+  if (settings.backend === "cursor" || settings.backend === "compatible") {
     return { session, remapped: false };
   }
 

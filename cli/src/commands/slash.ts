@@ -32,32 +32,51 @@ import { isGoalStaleForSession } from "../goal/stale.js";
 import { exportHandoff } from "../handoff/io.js";
 import { getSwarmGraph } from "../sispace/swarm.js";
 import { runSessionCompaction } from "../session/compaction.js";
-import { tokenFromEnv } from "../sdk/session-agent.js";
+import { buildResumeSessionState } from "../session/resume.js";
+import {
+  listRecentChats,
+  updateTaskTitle,
+  buildChatHistoryContextBlock,
+  type ChatListEntry,
+} from "../session/chat-persist.js";
+import { closeSessionAgent, tokenFromEnv } from "../sdk/session-agent.js";
+import { generatePlan, type PlanDraft } from "../plan/generate.js";
+import type { AuthView, AuthDialogData } from "../tui/AuthDialog.js";
 import {
   extractSlashInvocation,
   isRegisteredSlashCommand,
   parseSlashCommandKey,
 } from "./slash-catalog.js";
-import type { CliSession } from "../session/types.js";
+import type { CliSession, SessionState } from "../session/types.js";
 
 export interface SlashResult {
   ok: boolean;
   message: string;
   sessionPatch?: Partial<CliSession>;
+  /** Replace the entire TUI session state (used by /resume). */
+  replaceSessionState?: SessionState;
   /** Open interactive model picker (Cursor SDK catalog). */
   openModelPicker?: "orchestrator" | "subagent";
+  /** Open interactive saved-chat picker (↑↓ · Enter resumes). */
+  openChatPicker?: ChatListEntry[];
+  /** Open plan Build/Revise picker. */
+  openPlanPicker?: PlanDraft;
+  /** Open interactive auth dialog (Qwen Code-style). */
+  openAuthDialog?: { view: AuthView; data: AuthDialogData };
+  /** Open interactive backend picker (OpenRouter / Cursor / Compatible). */
+  openBackendPicker?: true;
 }
 
 export interface SlashContext {
   session: CliSession;
   pushLine: (line: string) => void;
-  setBusy: (busy: boolean) => void;
+  setBusy: (busy: boolean, label?: string) => void;
 }
 
 const PLACEHOLDER_COMMANDS: Record<string, string> = {
   handoff: "Export session blob for terminal attach.",
   harness: "Harness status summary (Phase 1a).",
-  help: "Slash: /search /reflect /grade /handoff /swarm /goal /compact /harness /harness-compress /doctor /feature /bug /docs /recall /model /subagent-model /subagents",
+  help: "Slash: /auth /backend (pick) /chats (pick) /plan /memory /test-ask /resume /rename /search /reflect /grade /handoff /swarm /goal /compact /harness /doctor /feature /bug /docs /recall /model /subagents",
 };
 
 async function handleSearch(
@@ -449,77 +468,202 @@ function handleReject(ctx: SlashContext, rest: string): SlashResult {
   }
 }
 
-/** Set or show the LLM backend via user settings. */
-async function handleBackend(
+/**
+ * Apply a backend selection (shared by /backend args and BackendPicker UI).
+ * Exported for Orchestrator confirm path.
+ */
+export async function applyBackendSelection(
   ctx: SlashContext,
-  rest: string,
+  sub: "openrouter" | "cursor" | "compatible",
+  compatName?: string,
 ): Promise<SlashResult> {
-  const sub = rest.trim().toLowerCase();
-
-  if (!sub) {
-    const settings = loadUserSettings();
-    ctx.pushLine(`Current backend: ${settings.backend}`);
-    return { ok: true, message: `Backend is ${settings.backend}. Use /backend openrouter or /backend cursor to change.` };
-  }
-
-  if (sub !== "openrouter" && sub !== "cursor") {
-    return { ok: false, message: "Usage: /backend | /backend openrouter | /backend cursor" };
-  }
-
   const currentSettings = loadUserSettings();
-  const switchingAway = currentSettings.backend !== sub;
+  let targetProvider = currentSettings.compatibleProvider;
 
-  saveUserSettings({ backend: sub });
+  if (sub === "compatible") {
+    const { listCompatibleProviderNames, resolveCompatibleProvider } =
+      await import("../config/credentials.js");
+    const name = (compatName ?? "").toLowerCase() || currentSettings.compatibleProvider || "";
+    if (!name) {
+      const names = listCompatibleProviderNames();
+      return {
+        ok: false,
+        message: names.length
+          ? `Usage: /backend compatible <name> — available: ${names.join(", ")}`
+          : "No compatible providers — run /auth compatible first.",
+      };
+    }
+    if (!resolveCompatibleProvider(name)) {
+      return {
+        ok: false,
+        message: `Unknown compatible provider "${name}". Run /auth list.`,
+      };
+    }
+    targetProvider = name;
+  }
+
+  const switchingAway =
+    currentSettings.backend !== sub ||
+    (sub === "compatible" &&
+      currentSettings.compatibleProvider !== targetProvider);
+
+  // Drop the in-process agent so the next turn constructs the new backend.
+  if (switchingAway) {
+    closeSessionAgent(ctx.session.id);
+  }
+
+  const historyBlock =
+    switchingAway && ctx.session.taskId?.trim()
+      ? buildChatHistoryContextBlock(ctx.session.taskId.trim())
+      : null;
+
+  // Carry prior turns into the next backend (esp. Cursor, which has no DB seed).
+  const continuityPatch: Partial<CliSession> = switchingAway
+    ? {
+        contextInjected: false,
+        ...(historyBlock
+          ? { resumeContextBlock: historyBlock }
+          : {}),
+      }
+    : {};
 
   // If switching to a different backend, reset model to that backend's default
   if (switchingAway) {
     if (sub === "cursor") {
-      // Reset to Cursor default
       saveUserSettings({
         backend: sub,
         cursorModel: CURSOR_DEFAULT_MODEL_ID,
         cursorModelParams: undefined,
+        compatibleProvider: undefined,
       });
       ctx.pushLine(`Backend set to: cursor — model reset to "${CURSOR_DEFAULT_MODEL_ID}" (use /model to pick)`);
+      if (historyBlock) {
+        ctx.pushLine("› Prior chat turns will be injected on the next message (backend switch).");
+      }
       return {
         ok: true,
         message: `Backend saved as cursor. Model reset to ${CURSOR_DEFAULT_MODEL_ID} (Cursor default).`,
         sessionPatch: {
           modelId: CURSOR_DEFAULT_MODEL_ID,
           modelParams: undefined,
-        },
-      };
-    } else {
-      // Reset to OpenRouter default — clear cursor-specific fields
-      saveUserSettings({
-        backend: sub,
-        cursorModel: undefined,
-        cursorModelParams: undefined,
-      });
-      ctx.pushLine(`Backend set to: openrouter — model reset to catalog default`);
-      return {
-        ok: true,
-        message: "Backend saved as openrouter. Model reset to config/sispace.yaml default.",
-        sessionPatch: {
-          modelId: DEFAULT_MODEL,
-          modelParams: undefined,
+          ...continuityPatch,
         },
       };
     }
+    if (sub === "compatible") {
+      const { resolveCompatibleProvider } = await import(
+        "../config/credentials.js"
+      );
+      const provider = resolveCompatibleProvider(targetProvider!);
+      const modelId = provider?.models[0] || DEFAULT_MODEL;
+      saveUserSettings({
+        backend: "compatible",
+        compatibleProvider: targetProvider,
+        defaultModel: modelId,
+        cursorModel: undefined,
+        cursorModelParams: undefined,
+      });
+      ctx.pushLine(
+        `Backend set to: compatible/${targetProvider} — model "${modelId}"`,
+      );
+      if (historyBlock) {
+        ctx.pushLine("› Prior chat turns will be seeded on the next message.");
+      }
+      return {
+        ok: true,
+        message: `Backend saved as compatible/${targetProvider}.`,
+        sessionPatch: {
+          modelId,
+          modelParams: undefined,
+          ...continuityPatch,
+        },
+      };
+    }
+
+    saveUserSettings({
+      backend: "openrouter",
+      cursorModel: undefined,
+      cursorModelParams: undefined,
+      compatibleProvider: undefined,
+    });
+    ctx.pushLine(`Backend set to: openrouter — model reset to catalog default`);
+    if (historyBlock) {
+      ctx.pushLine("› Prior chat turns will be seeded into OpenRouter on the next message.");
+    }
+    return {
+      ok: true,
+      message: "Backend saved as openrouter. Model reset to config/sispace.yaml default.",
+      sessionPatch: {
+        modelId: DEFAULT_MODEL,
+        modelParams: undefined,
+        ...continuityPatch,
+      },
+    };
   }
 
-  ctx.pushLine(`Backend set to: ${sub}`);
-  return { ok: true, message: `Backend saved as ${sub}. Takes effect on next session/agent construction.` };
+  ctx.pushLine(
+    `Backend set to: ${sub === "compatible" ? `compatible/${targetProvider}` : sub}`,
+  );
+  return {
+    ok: true,
+    message: `Backend saved as ${sub}. Takes effect on next session/agent construction.`,
+  };
+}
+
+/** Set or show the LLM backend via user settings / interactive picker. */
+async function handleBackend(
+  ctx: SlashContext,
+  rest: string,
+): Promise<SlashResult> {
+  const parts = rest.trim().split(/\s+/).filter(Boolean);
+  const sub = (parts[0] ?? "").toLowerCase();
+  const compatName = (parts[1] ?? "").toLowerCase();
+
+  // Bare /backend → open picker UI (same bottom slot as /auth /model).
+  if (!sub) {
+    return {
+      ok: true,
+      message: "Opening backend picker…",
+      openBackendPicker: true,
+    };
+  }
+
+  if (sub !== "openrouter" && sub !== "cursor" && sub !== "compatible") {
+    return {
+      ok: false,
+      message:
+        "Usage: /backend | /backend openrouter | /backend cursor | /backend compatible <name>",
+    };
+  }
+
+  return applyBackendSelection(ctx, sub, compatName || undefined);
 }
 
 /** Show /doctor — user settings + session diagnostics. */
 async function handleDoctor(ctx: SlashContext): Promise<SlashResult> {
   const settings = loadUserSettings();
+  const { credentialsPath, readCredentials, maskSecret } = await import(
+    "../config/credentials.js"
+  );
+  const creds = readCredentials();
   const lines: string[] = [];
   lines.push("─ cursorsi doctor ─");
-  lines.push(`  backend:        ${settings.backend}`);
+  lines.push(
+    `  backend:        ${
+      settings.backend === "compatible" && settings.compatibleProvider
+        ? `compatible/${settings.compatibleProvider}`
+        : settings.backend
+    }`,
+  );
   lines.push(`  defaultModel:   ${settings.defaultModel ?? "(from catalog default)"}`);
   lines.push(`  settings file:  ${userSettingsPath()}`);
+  lines.push(`  credentials:    ${credentialsPath()}`);
+  lines.push(
+    `  openrouter key: ${creds.providers.openrouter ? maskSecret(creds.providers.openrouter.key) : "(unset)"}`,
+  );
+  lines.push(
+    `  cursor key:     ${creds.providers.cursor ? maskSecret(creds.providers.cursor.key) : "(unset)"}`,
+  );
   lines.push(`  session id:    ${ctx.session.id}`);
   lines.push(`  model id:      ${ctx.session.modelId ?? "(unset)"}`);
   lines.push(`  createdAt:     ${ctx.session.createdAt}`);
@@ -537,11 +681,211 @@ async function handleSettings(ctx: SlashContext): Promise<SlashResult> {
   lines.push("─ User Settings ─");
   lines.push(`  backend:        ${settings.backend}`);
   lines.push(`  defaultModel:   ${settings.defaultModel ?? "(from catalog default)"}`);
+  lines.push(
+    `  auto-memory:    ${settings.memory?.enableAutoMemory !== false ? "on" : "off"}`,
+  );
+  lines.push(
+    `  auto-skill:     ${settings.memory?.enableAutoSkill !== false ? "on" : "off"}`,
+  );
   lines.push(`  settings file:  ${userSettingsPath()}`);
   for (const line of lines) {
     ctx.pushLine(line);
   }
   return { ok: true, message: "User settings shown above." };
+}
+
+/** /memory — status + toggles for Qwen-style auto memory/skill. */
+async function handleMemory(
+  ctx: SlashContext,
+  restRaw: string,
+): Promise<SlashResult> {
+  const {
+    resolveMemorySettings,
+    AUTO_SKILL_TOOL_THRESHOLD,
+    runAutoExtract,
+  } = await import("../memory/auto-extract.js");
+  const { projectMemoryDir, projectSkillsDir } = await import(
+    "../memory/paths.js"
+  );
+  const rest = restRaw.trim();
+  const settings = loadUserSettings();
+  const flags = resolveMemorySettings(settings);
+
+  if (!rest) {
+    ctx.pushLine("─ Project memory ─");
+    ctx.pushLine(`  auto-memory:  ${flags.enableAutoMemory ? "on" : "off"}`);
+    ctx.pushLine(`  auto-skill:   ${flags.enableAutoSkill ? "on" : "off"}`);
+    ctx.pushLine(`  tool calls:   ${ctx.session.toolCallCount ?? 0} (skill threshold ${AUTO_SKILL_TOOL_THRESHOLD})`);
+    ctx.pushLine(`  memory dir:   ${projectMemoryDir(ctx.session.cwd)}`);
+    ctx.pushLine(`  skills dir:   ${projectSkillsDir(ctx.session.cwd)}`);
+    ctx.pushLine("  /memory auto-memory on|off");
+    ctx.pushLine("  /memory auto-skill on|off");
+    ctx.pushLine("  /memory extract   — run extract now");
+    return { ok: true, message: "Memory settings shown above." };
+  }
+
+  const [key, valueRaw] = rest.split(/\s+/);
+  const value = (valueRaw ?? "").toLowerCase();
+
+  if (key === "extract") {
+    ctx.setBusy(true, "Extracting memory");
+    try {
+      // Manual extract: allow skills even under the auto threshold.
+      const result = await runAutoExtract(ctx.session, {
+        wantMemory: flags.enableAutoMemory,
+        wantSkill: flags.enableAutoSkill && !ctx.session.skillsDirTouched,
+        toolCallCount: ctx.session.toolCallCount ?? 0,
+      });
+      if (!result.launched) {
+        return {
+          ok: false,
+          message: `Extract skipped: ${result.skipped ?? "unknown"}`,
+        };
+      }
+      const bits = [
+        ...(result.memoryFiles?.length
+          ? [`memory ${result.memoryFiles.join(",")}`]
+          : []),
+        ...(result.skillSlugs?.length
+          ? [`skills ${result.skillSlugs.join(",")}`]
+          : []),
+      ];
+      return {
+        ok: true,
+        message: bits.length
+          ? `Extracted: ${bits.join(" · ")}`
+          : result.summary || "Extract finished (nothing durable).",
+      };
+    } finally {
+      ctx.setBusy(false);
+    }
+  }
+
+  if (
+    (key === "auto-memory" || key === "auto-skill") &&
+    (value === "on" || value === "off")
+  ) {
+    const enabled = value === "on";
+    if (key === "auto-memory") {
+      saveUserSettings({ memory: { enableAutoMemory: enabled } });
+    } else {
+      saveUserSettings({ memory: { enableAutoSkill: enabled } });
+    }
+    return { ok: true, message: `${key} → ${value}` };
+  }
+
+  return {
+    ok: false,
+    message:
+      "Usage: /memory | /memory auto-memory on|off | /memory auto-skill on|off | /memory extract",
+  };
+}
+
+async function handleChats(_ctx: SlashContext): Promise<SlashResult> {
+  const listed = listRecentChats(20);
+  if (!listed.ok) {
+    return { ok: false, message: listed.error ?? "Failed to list chats." };
+  }
+  const chats = listed.chats ?? [];
+  if (chats.length === 0) {
+    return {
+      ok: true,
+      message: "No saved chats yet — send a message to auto-save one.",
+    };
+  }
+  return {
+    ok: true,
+    message: "",
+    openChatPicker: chats,
+  };
+}
+
+async function handleResumeChat(
+  ctx: SlashContext,
+  taskIdRaw: string,
+): Promise<SlashResult> {
+  const taskId = taskIdRaw.trim();
+  if (!taskId) {
+    return { ok: false, message: "Usage: /resume <task-id>" };
+  }
+  ctx.setBusy(true);
+  try {
+    const result = await buildResumeSessionState(taskId, ctx.session.cwd);
+    if (!result.ok || !result.state) {
+      return { ok: false, message: result.error ?? `Resume failed for ${taskId}` };
+    }
+    return {
+      ok: true,
+      message: `Resumed ${result.state.sessions[0]?.title ?? taskId}`,
+      replaceSessionState: result.state,
+    };
+  } finally {
+    ctx.setBusy(false);
+  }
+}
+
+async function handleRename(
+  ctx: SlashContext,
+  titleRaw: string,
+): Promise<SlashResult> {
+  const title = titleRaw.trim();
+  if (!title) {
+    return { ok: false, message: "Usage: /rename <new title>" };
+  }
+  const taskId = ctx.session.taskId?.trim();
+  if (!taskId) {
+    return {
+      ok: false,
+      message: "No saved chat yet — send a message first, then /rename.",
+    };
+  }
+  const updated = updateTaskTitle(taskId, title);
+  if (!updated.ok) {
+    return { ok: false, message: updated.error ?? "Rename failed." };
+  }
+  return {
+    ok: true,
+    message: `Renamed chat to "${title.replace(/\s+/g, " ").trim()}"`,
+    sessionPatch: { title: title.replace(/\s+/g, " ").trim() },
+  };
+}
+
+async function handleTestAsk(ctx: SlashContext): Promise<SlashResult> {
+  const { askUser } = await import("../tools/ask-user.js");
+  ctx.pushLine("› Opening QuestionPicker test…");
+  const answer = await askUser({
+    prompt: "Test ask — which color?",
+    options: ["Red", "Blue", "Green"],
+  });
+  return { ok: true, message: `Answered: ${answer}` };
+}
+
+async function handlePlan(
+  ctx: SlashContext,
+  goalRaw: string,
+): Promise<SlashResult> {
+  const goal = goalRaw.trim();
+  if (!goal) {
+    return { ok: false, message: "Usage: /plan <what to build>" };
+  }
+  ctx.pushLine(`› Planning: ${goal}`);
+  ctx.setBusy(true, "Planning");
+  try {
+    const result = await generatePlan(goal, ctx.session.cwd);
+    if (!result.ok) {
+      return { ok: false, message: result.error };
+    }
+    return {
+      ok: true,
+      message: `Plan ready — ${result.plan.title}`,
+      openPlanPicker: result.plan,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, message: `Plan failed: ${msg}` };
+  } finally {
+    ctx.setBusy(false);
+  }
 }
 
 export async function runSlashCommand(
@@ -565,6 +909,18 @@ export async function runSlashCommand(
 
   const [, ...restParts] = body.split(/\s+/);
   const rest = restParts.join(" ");
+
+  if (key === "chats") {
+    return handleChats(ctx);
+  }
+
+  if (key === "resume") {
+    return handleResumeChat(ctx, rest);
+  }
+
+  if (key === "rename") {
+    return handleRename(ctx, rest);
+  }
 
   if (key === "recall") {
     return handleRecall(ctx, rest.trim());
@@ -606,8 +962,25 @@ export async function runSlashCommand(
     return handleSubagents(ctx, rest.trim());
   }
 
+  if (key === "auth") {
+    const { handleAuth } = await import("./auth.js");
+    return handleAuth(ctx, rest);
+  }
+
   if (key === "backend") {
     return handleBackend(ctx, rest.trim());
+  }
+
+  if (key === "plan") {
+    return handlePlan(ctx, rest);
+  }
+
+  if (key === "test-ask") {
+    return handleTestAsk(ctx);
+  }
+
+  if (key === "memory") {
+    return handleMemory(ctx, rest);
   }
 
   if (key === "model") {

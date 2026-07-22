@@ -5,9 +5,36 @@ import {
   modelCatalogFromConfig,
   modelIdsFromConfig,
 } from "../config/models.js";
+import {
+  resolveCompatibleProvider,
+  resolveOpenRouterCredentials,
+} from "../config/credentials.js";
+import { loadUserSettings } from "../config/user-settings.js";
 import type { ModelListItem } from "../sdk/types.js";
 import { getCursorSdk } from "../sdk/cursor-agent-backend.js";
 import { cursorTokenFromEnv } from "../sdk/session-agent.js";
+
+function modelsFromSlugs(slugs: string[]): ModelListItem[] {
+  return slugs
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .map((id) => ({ id, displayName: id }));
+}
+
+function mergeCatalog(
+  base: ModelListItem[],
+  extra: ModelListItem[],
+): ModelListItem[] {
+  const seen = new Set(base.map((m) => m.id));
+  const out = [...base];
+  for (const item of extra) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      out.push(item);
+    }
+  }
+  return out;
+}
 
 /** Sync fallback when catalog fetch is unavailable. */
 export const FALLBACK_MODEL_ID = DEFAULT_MODEL;
@@ -49,22 +76,38 @@ function catalogForCwd(cwd: string): { ids: Set<string>; list: ModelListItem[] }
   return { ids: cachedIds, list: cachedList };
 }
 
-/** Fetch model ids from config/sispace.yaml; cached per project root. */
+/** Fetch model ids from config/sispace.yaml (+ /auth stored slugs). */
 export async function fetchAvailableModelIds(
   credential: string,
   cwd = process.cwd(),
 ): Promise<Set<string>> {
-  void credential;
-  return catalogForCwd(cwd).ids;
+  const list = await fetchModelCatalog(credential, cwd);
+  return new Set(list.map((m) => m.id));
 }
 
-/** Fetch model catalog entries from config/sispace.yaml. */
+/**
+ * Fetch model catalog entries.
+ * OpenRouter: sispace.yaml + optional /auth openrouter models.
+ * Compatible: models stored under the active compatible provider.
+ */
 export async function fetchModelCatalog(
   credential: string,
   cwd = process.cwd(),
 ): Promise<ModelListItem[]> {
   void credential;
-  return catalogForCwd(cwd).list;
+  const settings = loadUserSettings();
+  if (settings.backend === "compatible") {
+    const name = settings.compatibleProvider?.trim() || "";
+    const provider = name ? resolveCompatibleProvider(name) : undefined;
+    const slugs = provider?.models ?? [];
+    if (slugs.length > 0) return modelsFromSlugs(slugs);
+    return modelsFromSlugs(
+      settings.defaultModel ? [settings.defaultModel] : [FALLBACK_MODEL_ID],
+    );
+  }
+  const base = catalogForCwd(cwd).list;
+  const authModels = modelsFromSlugs(resolveOpenRouterCredentials().models);
+  return mergeCatalog(base, authModels);
 }
 
 /** Clear cache (tests). */

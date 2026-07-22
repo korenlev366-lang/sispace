@@ -4,6 +4,21 @@ Self-improvement task orchestration workspace — a native GTK4 desktop app (`si
 
 > **v3.** SISpace was originally a Tauri + React app (v1). It has since migrated to a native GTK4 Rust frontend — no React webview. The root `package.json` still exists, but only as the test/verify runner and build orchestration layer for cursorsi and packaging; it no longer runs Tauri.
 
+## cursorsi (npm)
+
+Terminal-native Cursor / OpenRouter agent (Ink TUI), published as [`cursorsi`](https://www.npmjs.com/package/cursorsi):
+
+```bash
+npm install -g cursorsi --legacy-peer-deps
+cursorsi setup          # hooks, harness, generic AGENTS.md, ~/.cursorsi
+cursorsi                # start TUI → /auth → /backend → /model
+```
+
+Requires **Node ≥ 22.5**. Full docs: [cli/README.md](./cli/README.md).
+
+Publish (maintainers): `cd cli && npx npm@10 publish --access public`  
+(`prepublishOnly` runs `sync:templates` + `tsc`; templates are genericized — no personal vault paths.)
+
 ---
 
 ## What's in this repo
@@ -29,11 +44,13 @@ Self-improvement task orchestration workspace — a native GTK4 desktop app (`si
 - Settings — harness-doctor report + meta-harness readiness milestones
 
 **cursorsi**
-- Backend toggle (`/backend openrouter` / `/backend cursor`) — verified end-to-end; automated/subagent work stays on OpenRouter to protect Cursor quota, foreground sessions can run on real Cursor models
-- Cursor model picker — live catalog via `Cursor.models.list()`, fully backend-aware (no ID leakage between OpenRouter's dot-namespace and Cursor's hyphen-namespace)
-- Per-model parameter editor — Tab to open, arrows to highlight, Space to commit, matching Cursor CLI's UX (context / effort / reasoning / thinking / fast)
-- Crash logging — fatal errors (uncaught exceptions, unhandled rejections, Ink render failures) persist to `~/.config/cursorsi/crash.log` instead of silently killing the terminal panel
-- Fixed: clipboard copy (Ctrl+Shift+C) EPIPE crash on large session buffers
+- Backend toggle (`/backend` picker or `/backend openrouter|cursor|compatible`) — verified end-to-end; automated/subagent work stays on OpenRouter to protect Cursor quota, foreground sessions can run on real Cursor models
+- Interactive `/auth` dialog and `/backend` picker (bottom-slot UI)
+- `ask_user` MCP → QuestionPicker under the prompt
+- `cursorsi setup` scaffolds hooks, harness, and a generic `AGENTS.md`
+- Cursor model picker — live catalog via `Cursor.models.list()`, fully backend-aware
+- Per-model parameter editor — Tab to open, arrows to highlight, Space to commit
+- Crash logging — fatal errors persist to `~/.config/cursorsi/crash.log`
 
 **In progress / not yet built**
 - Concurrent-agent file-locking (prevents two cursorsi agents editing the same file from racing)
@@ -52,6 +69,9 @@ cargo build --release -p sispace-gtk
 
 **cursorsi**
 ```bash
+npm install -g cursorsi --legacy-peer-deps   # published package
+# or from this repo:
+cd cli && npm install --legacy-peer-deps && npm run build
 npm run cursorsi:build     # = npm run build --prefix cli
 export OPENROUTER_API_KEY=...   # required (default OpenRouter backend)
 # export CURSOR_API_KEY=...     # optional — only for /backend cursor

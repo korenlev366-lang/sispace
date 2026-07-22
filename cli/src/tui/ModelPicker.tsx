@@ -26,7 +26,7 @@ export {
 interface ModelPickerProps {
   state: ModelPickerState;
   current: StoredModelChoice;
-  backend?: "cursor" | "openrouter";
+  backend?: "cursor" | "openrouter" | "compatible";
 }
 
 export type ParamNavRow =
@@ -371,6 +371,10 @@ export function pickerArrowDelta(
   return null;
 }
 
+/**
+ * Model list UI placed under the transcript / above the prompt
+ * (same layout slot as PlanPicker and QuestionPicker).
+ */
 export function ModelPicker({ state, current, backend = "openrouter" }: ModelPickerProps) {
   const title =
     state.target === "orchestrator"

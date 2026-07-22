@@ -54,6 +54,14 @@ export interface CliSession {
   firstKeptEntryId?: string;
   /** Pipeline subagent decomposition toggle (default false). */
   subagentsEnabled?: boolean;
+  /** Cumulative tool calls this CLI session (for auto-skill threshold). */
+  toolCallCount?: number;
+  /** True if this session wrote under .cursorsi/skills/ (skip auto-skill). */
+  skillsDirTouched?: boolean;
+  /** True after Cursor ask_user hint was injected once. */
+  askUserHintInjected?: boolean;
+  /** True after .cursorsi project memory/skill index was injected. */
+  projectMemoryInjected?: boolean;
 }
 
 export interface SessionState {

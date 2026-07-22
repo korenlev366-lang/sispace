@@ -8,7 +8,10 @@ function defaultModelId(): string {
   if (settings.backend === "cursor") {
     return settings.cursorModel || CURSOR_DEFAULT_MODEL_ID;
   }
-  return FALLBACK_MODEL_ID;
+  if (settings.backend === "compatible") {
+    return settings.defaultModel || FALLBACK_MODEL_ID;
+  }
+  return settings.defaultModel || FALLBACK_MODEL_ID;
 }
 
 function newId(): string {

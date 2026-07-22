@@ -1,18 +1,30 @@
 {
   "name": "cursorsi",
-  "version": "0.1.0",
-  "description": "CursorSI CLI — terminal-native Cursor agent client (Ink TUI)",
+  "version": "1.0.1",
+  "description": "CursorSI — terminal-native Cursor/OpenRouter agent (Ink TUI) with ask_user MCP, hooks, and harness scaffolding",
   "type": "module",
-  "private": true,
+  "license": "MIT",
   "bin": {
-    "cursorsi": "bin/cursorsi.mjs"
+    "cursorsi": "bin/cursorsi.mjs",
+    "cursorsi-ask-mcp": "bin/ask-user-mcp.mjs"
   },
+  "files": [
+    "bin/",
+    "dist/",
+    "templates/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "sync:templates": "node scripts/sync-templates.mjs",
+    "prepack": "npm run sync:templates && npm run build",
+    "prepublishOnly": "npm run sync:templates && npm run build",
     "start": "node bin/cursorsi.mjs",
+    "setup": "node bin/cursorsi.mjs setup",
     "version:bench": "node -e \"const t=performance.now();require('child_process').execSync('node bin/cursorsi.mjs --version',{cwd:process.cwd()});console.log(Math.round(performance.now()-t)+'ms')\""
   },
   "dependencies": {
+    "@cursor/sdk": "1.0.17",
     "@openrouter/agent": "^0.7.1",
     "@openrouter/sdk": "^0.12.79",
     "ink": "^5.2.0",
@@ -28,5 +40,26 @@
   },
   "engines": {
     "node": ">=22.5"
+  },
+  "keywords": [
+    "cursor",
+    "openrouter",
+    "cli",
+    "tui",
+    "agent",
+    "mcp",
+    "harness"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/korenlev366-lang/sispace.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/korenlev366-lang/sispace/issues"
+  },
+  "homepage": "https://github.com/korenlev366-lang/sispace/tree/main/cli#readme",
+  "allowScripts": {
+    "sqlite3@5.1.7": true
   }
 }

@@ -1,5 +1,6 @@
 import { render } from "ink";
 import { logModelRemaps, validateSessionStateModels } from "./models/session-models.js";
+import { applyCredentialsToRuntime } from "./config/credentials.js";
 import { loadUserSettings } from "./config/user-settings.js";
 import { Orchestrator } from "./tui/Orchestrator.js";
 import { initCliRuntime } from "./runtime/init.js";
@@ -11,6 +12,7 @@ import { runPaneMode } from "./pane/mode.js";
 import { VOICE_STUB_MESSAGE } from "./voice/stub.js";
 
 installCrashHandlers();
+applyCredentialsToRuntime();
 
 const argv = process.argv.slice(2);
 const cwd = process.cwd();

@@ -10,6 +10,10 @@ import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import type { ModelListItem } from "./types.js";
 import {
+  OPENROUTER_DEFAULT_ENDPOINT,
+  resolveOpenRouterCredentials,
+} from "../config/credentials.js";
+import {
   ALL_TOOLS,
   NON_OBSIDIAN_TOOLS,
   SharedContextSchema,
@@ -33,6 +37,7 @@ import { summarizeToolResult as summarizeForHistory } from "../compression/tool-
 import { compressOldTurns } from "../compression/history-compressor.js";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { ASK_USER_SYSTEM_INSTRUCTIONS } from "./ask-user-instructions.js";
 import type {
   AgentRun,
   BackendAgent,
@@ -56,18 +61,50 @@ export function createOpenRouterClient(apiKey?: string): OpenRouter {
 
 type SendPayload = string | { text: string; images: SDKImage[] };
 
-/** Helper to build input items from a SendPayload */
+/** Content parts for OpenRouter Responses API user messages with vision. */
+type InputContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; detail: "auto"; imageUrl: string };
+
+/** Build a data-URL (or remote URL) for an SDKImage. */
+function imageToUrl(img: SDKImage): string {
+  if ("data" in img) {
+    return `data:${img.mimeType};base64,${img.data}`;
+  }
+  return img.url;
+}
+
+/** Helper to build a history-safe text summary from a SendPayload (no raw base64). */
 function buildInputItems(payload: SendPayload): string {
   if (typeof payload === "string") {
     return payload;
   }
   const parts: string[] = [payload.text];
-  for (const img of payload.images) {
-    if ("data" in img) {
-      parts.push(`[Image: data:${img.mimeType};base64,${img.data.slice(0, 40)}…]`);
-    }
+  if (payload.images.length > 0) {
+    parts.push(`[${payload.images.length} image(s) attached]`);
   }
   return parts.join("\n\n");
+}
+
+/** Structured callModel input when the turn includes images; else plain history string. */
+function buildCallModelInput(
+  historyText: string,
+  payload: SendPayload,
+): string | Array<{ type: "message"; role: "user"; content: InputContentPart[] }> {
+  if (typeof payload === "string" || payload.images.length === 0) {
+    return historyText;
+  }
+  const content: InputContentPart[] = [
+    { type: "input_text", text: historyText },
+  ];
+  for (const img of payload.images) {
+    content.push({
+      type: "input_image",
+      detail: "auto",
+      imageUrl: imageToUrl(img),
+    });
+  }
+  return [{ type: "message", role: "user", content }];
 }
 
 const PER_TURN_MAX_LESSON_COUNT = 3;
@@ -307,6 +344,7 @@ class OpenRouterRun implements AgentRun {
 
 export class OpenRouterAgent implements SDKAgent, BackendAgent {
   readonly agentId: string;
+  private apiKey: string;
   private client: OpenRouter;
   private model: string;
   private modelParams?: ModelParameterValue[];
@@ -347,8 +385,11 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
     agentId?: string;
     obsidianApiKey?: string;
     obsidianApiUrl?: string;
+    /** Prior turns seeded on resume (user>/agent> lines). */
+    seedHistory?: string[];
   }) {
     this.agentId = opts.agentId ?? randomUUID();
+    this.apiKey = opts.apiKey;
     this.client = createOpenRouterClient(opts.apiKey);
     this.model = opts.model;
     this.modelParams = opts.modelParams;
@@ -356,6 +397,10 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
     this.agentsMd = opts.agentsMd;
     this.cwd = opts.cwd;
     this.enableTools = opts.enableTools ?? Boolean(opts.cwd);
+    if (opts.seedHistory?.length) {
+      this.messages = [...opts.seedHistory];
+      this.turnCount = opts.seedHistory.filter((m) => m.startsWith("user>")).length;
+    }
     if (opts.cwd) {
       this.sharedCtxPromise = this.buildSharedContext(
         opts.cwd,
@@ -403,11 +448,16 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
   /** Lazily create an OpenAI client pointed at OpenRouter for compression calls. */
   private getOpenAIClient(): OpenAI {
     if (!this.openaiClient) {
-      // Extract the API key from the existing OpenRouter client's options
+      // Prefer constructor key (covers __cursorsiCk bootstrap) over process.env alone.
       const apiKey =
-        process.env.OPENROUTER_API_KEY?.trim() || "";
+        this.apiKey.trim() ||
+        process.env.OPENROUTER_API_KEY?.trim() ||
+        resolveOpenRouterCredentials().key ||
+        "";
+      const baseURL =
+        resolveOpenRouterCredentials().endpoint || OPENROUTER_DEFAULT_ENDPOINT;
       this.openaiClient = new OpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
+        baseURL,
         apiKey,
         timeout: 600_000,
       });
@@ -442,7 +492,8 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
       obsidianAvailable: available,
       obsidianApiKey: key || undefined,
       obsidianApiUrl,
-      openRouterApiKey: process.env.OPENROUTER_API_KEY?.trim() || undefined,
+      openRouterApiKey:
+        this.apiKey.trim() || process.env.OPENROUTER_API_KEY?.trim() || undefined,
     };
   }
 
@@ -504,6 +555,10 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
   ): Promise<RunResult> {
     if (this.closed) {
       throw new Error("agent closed");
+    }
+    const signal = callbacks?.signal;
+    if (signal?.aborted) {
+      return { id: runId, status: "error", result: "Cancelled" };
     }
 
     this.turnCount++;
@@ -616,6 +671,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
     const customInstructions = this.buildInstructions();
     const instructionsLines = [
       `You are a coding agent running directly on the user's local machine via cursorsi CLI. You have full access to the local file system and can execute bash commands. The working directory is ${sharedCtx?.cwd ?? "the user's project"}. Use your tools actively to explore files, make changes, and complete tasks. Always respond in English.`,
+      ASK_USER_SYSTEM_INSTRUCTIONS,
     ];
     if (customInstructions.trim()) {
       instructionsLines.push(customInstructions.trim());
@@ -649,7 +705,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
         try {
           result = await this.client.callModel({
             model: this.model,
-            input: this.buildHistoryInput(),
+            input: buildCallModelInput(this.buildHistoryInput(), payload),
             instructions: instructionsLines.join("\n\n"),
             ...finalConfig,
             provider: {
@@ -680,6 +736,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
 
       const textStreamPromise = (async () => {
         for await (const delta of result.getTextStream()) {
+          if (signal?.aborted || this.closed) break;
           accumulatedText += delta;
           callbacks?.onChunk?.(delta, accumulatedText);
         }
@@ -687,6 +744,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
 
       const reasoningStreamPromise = (async () => {
         for await (const delta of result.getReasoningStream()) {
+          if (signal?.aborted || this.closed) break;
           accumulatedReasoning += delta;
         }
       })();
@@ -695,6 +753,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
       const itemsStreamPromise = (async () => {
         try {
           for await (const item of result.getItemsStream()) {
+            if (signal?.aborted || this.closed) break;
             // function_call_output items contain tool results
             if (
               item &&
@@ -722,6 +781,11 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
       })();
 
       await Promise.all([textStreamPromise, reasoningStreamPromise, itemsStreamPromise]);
+
+      if (signal?.aborted || this.closed) {
+        this.messages.pop();
+        return { id: runId, status: "error", result: "Cancelled" };
+      }
 
       // Wait for full execution (handles all auto tool rounds)
       const finalText = await result.getText();
@@ -754,9 +818,13 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
         promptTokens: usage?.inputTokens ?? undefined,
         completionTokens: usage?.outputTokens ?? undefined,
         obsidianLessonCount,
+        toolCallCount: toolResultsThisTurn.length,
       };
     } catch (err) {
       this.messages.pop();
+      if (signal?.aborted || this.closed) {
+        return { id: runId, status: "error", result: "Cancelled" };
+      }
       const msg = formatOpenRouterError(err);
       return { id: runId, status: "error", result: msg };
     }

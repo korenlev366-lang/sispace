@@ -37,8 +37,12 @@ assert(search.includes("/search/simple/"), "obsidian POST search/simple");
 
 const resume = read("cli/src/session/resume.ts");
 assert(resume.includes("buildResumeSessionState"), "resume builder");
-assert(resume.includes("vaultRead"), "resume reads obsidian note");
 assert(resume.includes("loadTaskMessages"), "resume loads sqlite messages");
+assert(
+  !resume.includes("buildResumeContextBlock") && !resume.includes("vaultRead"),
+  "resume does not inject task-note instructions",
+);
+assert(resume.includes("agentsContextFetched"), "resume skips AGENTS re-inject when history exists");
 
 const agentsInject = read("cli/src/session/agents-inject.ts");
 assert(agentsInject.includes("findGitRepoRoot"), "agents-inject resolves git root");

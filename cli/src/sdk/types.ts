@@ -5,6 +5,8 @@ export interface RunTurnCallbacks {
   onStatus?: (line: string) => void;
   /** If true, gate + plan subtasks via Flash before the main turn. */
   subagentsEnabled?: boolean;
+  /** Abort in-flight turn (Ctrl+C cancel). */
+  signal?: AbortSignal;
 }
 
 /**
@@ -77,6 +79,8 @@ export interface RunResult {
   completionTokens?: number;
   /** Number of Obsidian lessons injected into system prompt this turn (0 if none/unreachable). */
   obsidianLessonCount?: number;
+  /** Tool calls completed during this turn (OpenRouter/Cursor). */
+  toolCallCount?: number;
 }
 
 export interface SDKAgent {

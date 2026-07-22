@@ -67,7 +67,7 @@ export function PromptLine({
   );
   const effortLabel = effortParam ? `⚡${effortParam.value}` : null;
 
-  // status dot + word — folds in the old separate "agent…" busy indicator
+  // status word — animated spinner lives in BusySpinner above the prompt
   const statusColor = isBusy ? "#d8a657" : "#89b482";
   const statusWord = isBusy ? "busy" : "ready";
 
@@ -147,7 +147,7 @@ export function PromptLine({
           {slashCompletion?.ghostSuffix ? (
             <Text dimColor>{slashCompletion.ghostSuffix}</Text>
           ) : null}
-          <Text dimColor>{isBusy ? " …" : "▌"}</Text>
+          <Text dimColor>▌</Text>
         </Text>
       </Box>
     </Box>

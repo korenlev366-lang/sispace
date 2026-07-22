@@ -40,6 +40,42 @@ function errorFromUnknown(reason: unknown): Error {
   );
 }
 
+/**
+ * Stream/TTY errors that should not tear down the whole TUI.
+ *
+ * Common sources:
+ * - Cursor SDK shell state fd write after the child exited (write EPIPE)
+ * - Ink setRawMode during teardown when the TTY is already gone (EIO)
+ * - Peer socket reset mid-write (ECONNRESET)
+ */
+export function isBenignProcessError(reason: unknown): boolean {
+  const err = reason as { code?: unknown; message?: unknown } | null;
+  const code = typeof err?.code === "string" ? err.code : "";
+  const message =
+    typeof err?.message === "string"
+      ? err.message
+      : reason instanceof Error
+        ? reason.message
+        : String(reason ?? "");
+
+  if (
+    code === "EPIPE" ||
+    code === "ECONNRESET" ||
+    code === "ERR_STREAM_DESTROYED" ||
+    code === "ERR_STREAM_WRITE_AFTER_END"
+  ) {
+    return true;
+  }
+
+  if (/^write EPIPE$/i.test(message) || /\bEPIPE\b/.test(message)) {
+    return true;
+  }
+  if (/setRawMode\s+EIO/i.test(message)) {
+    return true;
+  }
+  return false;
+}
+
 export interface CrashReportContext {
   [key: string]: unknown;
 }
@@ -112,11 +148,21 @@ export function installCrashHandlers(): void {
   installed = true;
 
   process.on("uncaughtException", (err, origin) => {
+    if (isBenignProcessError(err)) {
+      appendCrashReport(`benign:uncaughtException:${origin}`, err);
+      return;
+    }
     logFatalError(`uncaughtException:${origin}`, err);
     process.exit(1);
   });
 
   process.on("unhandledRejection", (reason, promise) => {
+    if (isBenignProcessError(reason)) {
+      appendCrashReport("benign:unhandledRejection", reason, {
+        promise: inspect(promise),
+      });
+      return;
+    }
     logFatalError("unhandledRejection", reason, {
       promise: inspect(promise),
     });

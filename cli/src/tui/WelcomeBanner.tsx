@@ -98,7 +98,7 @@ export function WelcomeBanner({ session }: WelcomeBannerProps) {
 
       <Box marginTop={1}>
         <Text dimColor>
-          {SLASH_COMMANDS.length} commands · Tab complete · /help for usage
+          {SLASH_COMMANDS.length} commands · Tab complete · Ctrl+C cancel · Ctrl+C×2 quit · /help
         </Text>
       </Box>
     </Box>

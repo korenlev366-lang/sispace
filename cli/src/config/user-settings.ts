@@ -21,7 +21,15 @@ import { homedir } from "node:os";
 
 export const USER_SETTINGS_VERSION = 1 as const;
 
-export type BackendName = "openrouter" | "cursor";
+export type BackendName = "openrouter" | "cursor" | "compatible";
+
+/** Qwen-style project memory / auto-skill toggles (defaults on). */
+export interface MemoryUserSettings {
+  /** Declarative project memory under .cursorsi/memory/ (default true). */
+  enableAutoMemory?: boolean;
+  /** Procedural auto-skills under .cursorsi/skills/ (default true). */
+  enableAutoSkill?: boolean;
+}
 
 export interface UserSettings {
   /** Settings schema version. Always 1 for now. */
@@ -45,11 +53,22 @@ export interface UserSettings {
    * (e.g. [{ id: "reasoning", value: "max" }]).
    */
   cursorModelParams?: Array<{ id: string; value: string }>;
+  /**
+   * Active compatible provider name (from ~/.cursorsi/credentials.json).
+   * Only meaningful when backend is "compatible".
+   */
+  compatibleProvider?: string;
+  /** Auto memory / auto-skill (project .cursorsi/). */
+  memory?: MemoryUserSettings;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   version: USER_SETTINGS_VERSION,
   backend: "openrouter",
+  memory: {
+    enableAutoMemory: true,
+    enableAutoSkill: true,
+  },
 };
 
 // ─── Path resolution ─────────────────────────────────────────────────────
@@ -99,7 +118,11 @@ export function loadUserSettings(): UserSettings {
 
     const backendRaw = String(parsed.backend ?? "").trim().toLowerCase();
     const backend: BackendName =
-      backendRaw === "cursor" ? "cursor" : "openrouter";
+      backendRaw === "cursor"
+        ? "cursor"
+        : backendRaw === "compatible"
+          ? "compatible"
+          : "openrouter";
 
     const defaultModelRaw = parsed.defaultModel;
     const defaultModel =
@@ -111,6 +134,12 @@ export function loadUserSettings(): UserSettings {
     const cursorModel =
       typeof cursorModelRaw === "string" && cursorModelRaw.trim()
         ? cursorModelRaw.trim()
+        : undefined;
+
+    const compatibleProviderRaw = parsed.compatibleProvider;
+    const compatibleProvider =
+      typeof compatibleProviderRaw === "string" && compatibleProviderRaw.trim()
+        ? compatibleProviderRaw.trim().toLowerCase()
         : undefined;
 
     let cursorModelParams: Array<{ id: string; value: string }> | undefined;
@@ -126,12 +155,27 @@ export function loadUserSettings(): UserSettings {
       }
     }
 
+    let memory: MemoryUserSettings | undefined;
+    if (parsed.memory && typeof parsed.memory === "object") {
+      const m = parsed.memory as Record<string, unknown>;
+      memory = {
+        enableAutoMemory:
+          typeof m.enableAutoMemory === "boolean"
+            ? m.enableAutoMemory
+            : true,
+        enableAutoSkill:
+          typeof m.enableAutoSkill === "boolean" ? m.enableAutoSkill : true,
+      };
+    }
+
     return {
       version: USER_SETTINGS_VERSION,
       backend,
       ...(defaultModel ? { defaultModel } : {}),
       ...(cursorModel ? { cursorModel } : {}),
+      ...(compatibleProvider ? { compatibleProvider } : {}),
       ...(cursorModelParams ? { cursorModelParams } : {}),
+      memory: memory ?? { enableAutoMemory: true, enableAutoSkill: true },
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -164,11 +208,17 @@ export function saveUserSettings(partial: Partial<UserSettings>): void {
     existing = { ...DEFAULT_SETTINGS };
   }
 
-  // Merge: partial fields win over existing
+  // Merge: partial fields win over existing (deep-merge memory toggles).
   const merged: UserSettings = {
     ...existing,
     ...partial,
     version: USER_SETTINGS_VERSION, // always enforce current version
+    memory: {
+      enableAutoMemory: true,
+      enableAutoSkill: true,
+      ...existing.memory,
+      ...partial.memory,
+    },
   };
 
   // Ensure directory exists

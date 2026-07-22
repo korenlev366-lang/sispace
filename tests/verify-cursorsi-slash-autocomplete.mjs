@@ -30,7 +30,10 @@ const orch = read("cli/src/tui/Orchestrator.tsx");
 assert(orch.includes("getSlashCompletion"), "orchestrator uses slash completion");
 assert(orch.includes("SlashAutocomplete"), "orchestrator renders slash dropdown");
 assert(orch.includes("showSlashMenu"), "orchestrator toggles slash menu");
-assert(orch.includes("extractSlashInvocation"), "orchestrator extracts mid-line slash");
+assert(
+  orch.includes("extractSlashInvocation") || orch.includes("extractKnownSlashInvocation"),
+  "orchestrator extracts slash commands",
+);
 
 const slash = read("cli/src/commands/slash.ts");
 assert(slash.includes("extractSlashInvocation"), "slash router uses extractSlashInvocation");
@@ -47,12 +50,16 @@ assert(dropdown.includes("slashCommandDescription"), "dropdown shows description
 const {
   getSlashCompletion,
   extractSlashInvocation,
+  SLASH_COMMANDS,
 } = await import(
   new URL("../cli/dist/commands/slash-catalog.js", import.meta.url).href
 );
 
 const bare = getSlashCompletion("/");
-assert(bare && bare.candidates.length === 18, "bare / lists all commands");
+assert(
+  bare && bare.candidates.length === SLASH_COMMANDS.length,
+  "bare / lists all commands",
+);
 assert(bare?.value.startsWith("/"), "bare / completion keeps slash token");
 
 const g = getSlashCompletion("/g");
@@ -66,12 +73,20 @@ assert(mid?.value === "please /goal", "mid-prompt /g completes in place");
 assert(mid?.ghostSuffix === "oal", "mid-prompt ghost suffix");
 
 assert(
-  extractSlashInvocation("context /help") === "/help",
-  "extractSlashInvocation finds mid-line /help",
+  extractSlashInvocation("context /help") === null,
+  "extractSlashInvocation ignores mid-line /help (prompt goes through)",
+);
+assert(
+  extractSlashInvocation("please /chats now") === null,
+  "extractSlashInvocation ignores slash when other prompt text exists",
 );
 assert(
   extractSlashInvocation("/search foo bar") === "/search foo bar",
   "extractSlashInvocation keeps line-start args",
+);
+assert(
+  extractSlashInvocation("  /chats  ") === "/chats",
+  "extractSlashInvocation trims pure slash commands",
 );
 
 if (failures.length) {

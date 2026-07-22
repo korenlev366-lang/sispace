@@ -49,47 +49,49 @@ const { flags: cliFlags, rest: cliRest } = partitionArgv(argv);
 const coldSub = cliRest[0];
 
 function printHelp() {
-  console.log(`cursorsi ${pkg.version} — CursorSI CLI (Phase 1d)
+  console.log(`cursorsi ${pkg.version} — CursorSI CLI
 
 Usage:
-  cursorsi                 Start Ink TUI orchestrator
-  cursorsi kanban          Launch SISpace desktop kanban
+  npm install -g cursorsi   # or: npx cursorsi
+  cursorsi setup            # hooks + harness + config into this project
+  cursorsi                  # Start Ink TUI orchestrator
+
+  cursorsi setup [--force] [--sync-global] [--home-only] [TARGET_DIR]
+  cursorsi kanban           Launch SISpace desktop kanban
   cursorsi swarm <task-id> [--workers N]  Create gated swarm graph
   cursorsi handoff export|attach <session-id>
   cursorsi goal set "desc" --verify "sh verify.sh" [--max 10]
-  cursorsi goal status     Show active verify goal
+  cursorsi goal status      Show active verify goal
   cursorsi --resume <task-id>  Resume task (Obsidian note + SQLite messages)
   cursorsi --handoff-attach <session-id>  Restore exported session blob
-  cursorsi --db-path <file>    Shared kanban DB (cli/run.sh sets this)
-  cursorsi --version, -v   Print version (fast path)
-  cursorsi --help, -h      Show this help
-  cursorsi --voice         Voice input stub (not yet implemented)
+  cursorsi --db-path <file>    Shared kanban DB
+  cursorsi --version, -v    Print version (fast path)
+  cursorsi --help, -h       Show this help
+  cursorsi --voice          Voice input stub (not yet implemented)
   cursorsi --notify-topic <topic>  Override ntfy topic from config
-  cursorsi --no-reflect    Skip auto-reflection on session end
-  cursorsi --pane-mode     Minimal pane runtime (SISpace V2 embedded PTY)
+  cursorsi --no-reflect     Skip auto-reflection on session end
+  cursorsi --pane-mode      Minimal pane runtime (SISpace V2 embedded PTY)
   cursorsi --event-socket <path>  Unix socket for NDJSON pane events
 
 In TUI:
-  Tab / Ctrl+S             Session list overlay
-  Esc                      Close overlay
-  /recall <query>          Obsidian FTS lesson recall (next agent turn)
-  /goal                    Show active verify goal status
-  /handoff export          Write session blob for attach
-  /swarm status            Show swarm graph for linked task
-  /reflect /grade          Harness reflection and grading (manual)
-  /search <query>          FTS session search (shared tasks DB)
-  /feature /bug /docs      Load skill bundles for next agent turn
-  /help                    Full slash command list
-  Ctrl+C                   Quit (runs post-task chain in background unless --no-reflect)
+  Tab / Ctrl+S              Session list overlay
+  Esc                       Close overlay
+  /auth                     Interactive API key setup
+  /backend                  Pick OpenRouter / Cursor / Compatible
+  /model                    Model picker
+  /recall <query>           Obsidian FTS lesson recall (next agent turn)
+  /goal                     Show active verify goal status
+  /handoff export           Write session blob for attach
+  /swarm status             Show swarm graph for linked task
+  /reflect /grade           Harness reflection and grading (manual)
+  /search <query>           FTS session search (shared tasks DB)
+  /feature /bug /docs       Load skill bundles for next agent turn
+  /help                     Full slash command list
+  Ctrl+C                    Quit (post-task chain unless --no-reflect)
 
-Phase 1d: kanban/swarm/handoff CLI, cost status bar
-Phase 1c: goal verify loop, git diff viewer, /goal status
-Phase 1b: Obsidian lesson context on session start; --resume task-id
-Phase 1a: auto-reflection on session end via harness post-task-chain
-Phase 0d: Bitwarden bootstrap, ntfy on session end, --voice stub
-Phase 0e: --pane-mode + --event-socket NDJSON emitter (V2 pane IPC)
-Config: config/sispace.yaml (ntfy.server, ntfy.topic)
-Run "npm run build" in cli/ before first TUI launch if dist/ is missing.
+First-time:
+  npm install -g cursorsi && cursorsi setup && cursorsi
+  Then /auth and /backend inside the TUI.
 `);
 }
 
@@ -98,7 +100,11 @@ if (argv.includes("--version") || argv.includes("-v")) {
   process.exit(0);
 }
 
-if (argv.includes("--help") || argv.includes("-h") || argv.includes("help")) {
+// Global help — but `cursorsi setup -h` is handled by the setup subcommand.
+if (
+  (argv.includes("--help") || argv.includes("-h") || argv.includes("help")) &&
+  coldSub !== "setup"
+) {
   printHelp();
   process.exit(0);
 }
@@ -157,6 +163,15 @@ async function bootstrapCredentials() {
 }
 
 await bootstrapCredentials();
+
+if (coldSub === "setup") {
+  const { runSetupCli } = await import("../dist/setup/cli.js");
+  // Keep flags after `setup` (partitionArgv would otherwise swallow --help/--force).
+  const setupIdx = argv.indexOf("setup");
+  const setupArgs = setupIdx >= 0 ? argv.slice(setupIdx + 1) : cliRest.slice(1);
+  const code = await runSetupCli(setupArgs, process.cwd());
+  process.exit(code);
+}
 
 if (coldSub === "goal") {
   const { runGoalCli } = await import("../dist/goal/cli.js");
