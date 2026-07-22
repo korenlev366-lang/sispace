@@ -5,7 +5,7 @@
 set -eu
 
 input=$(cat)
-ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+ROOT=$(HOOK_INPUT="$input" sh "$(dirname "$0")/lib/workspace-root.sh")
 export HARNESS_HOOK_INPUT=$input
 export HARNESS_ROOT=$ROOT
 

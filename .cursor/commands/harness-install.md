@@ -1,15 +1,22 @@
 # Harness Install
 
-Install cursorsi / harness hooks, agents, commands, and scripts into a project.
+Install cursorsi hooks, agents, commands, and harness scripts.
 
-## Recommended
-
-From the project root:
+## Recommended (global — default)
 
 ```sh
-cursorsi setup
-cursorsi setup --force           # overwrite existing copies
-cursorsi setup --sync-global     # also refresh ~/.cursor-harness
+cursorsi setup                 # ~/.cursor hooks/skills + ~/.cursor-harness
+cursorsi setup --force         # overwrite
+cursorsi setup --sync-harness  # refresh harness scripts
+```
+
+User hooks apply to **all** Cursor workspaces on this machine.
+
+## Optional per-project scaffold
+
+```sh
+cursorsi setup --project              # cwd: AGENTS.md + local harness
+cursorsi setup --project /path/to/app
 ```
 
 ## Manual (from a template tree)
@@ -17,32 +24,6 @@ cursorsi setup --sync-global     # also refresh ~/.cursor-harness
 ```sh
 sh path/to/harness/scripts/harness-install.sh
 sh path/to/harness/scripts/harness-install.sh --force
-sh path/to/harness/scripts/harness-install.sh --sync-global
-```
-
-### Installed into the target project
-
-| Source | Destination |
-| --- | --- |
-| `.cursor/hooks.json` + `.cursor/hooks/` | Same |
-| `.cursor/commands/` | `harness-*` slash commands |
-| `.cursor/agents/` | Reflection, grading, workflow, checker agents |
-| `.cursor/skills/harness-*` | Skills |
-| `harness/config/` | Runtime policy |
-| `harness/scripts/` | Shell tools + compiled `dist/` |
-| `harness/scaffold/` | Empty ledgers/reports (skip if present) |
-
-`node_modules/` is never copied; the installer runs `npm install` + `npm run build` when `dist/` is missing.
-
-### Canonical memory (optional)
-
-When `SISPACE_HOME` is set (or `~/sispace/harness/memory` exists):
-
-- Ledgers and reports can live in that canonical store
-- Project hooks still run locally
-
-```sh
-export SISPACE_HOME=/path/to/canonical-harness-home
 ```
 
 ### MCP
@@ -52,4 +33,4 @@ export SISPACE_HOME=/path/to/canonical-harness-home
 
 ## After install
 
-Restart Cursor (or start a new agent session) so hook changes load.
+Restart Cursor so global hooks reload.

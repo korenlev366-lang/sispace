@@ -64,12 +64,12 @@ if [ -z "$generation_id" ]; then
   generation_id=unknown
 fi
 
-ROOT=$(pwd)
+ROOT=$(HOOK_INPUT="$INPUT" sh "$(dirname "$0")/lib/workspace-root.sh")
 SISPACE_HOME=${SISPACE_HOME:-$HOME/sispace}
 HARNESS_HOME=${HARNESS_HOME:-$HOME/.cursor-harness}
 CHAIN_SCRIPT=$HARNESS_HOME/harness/scripts/dist/post-task-chain.js
 
-# Memory ledgers and reports always land in SISpace (PROP cross-repo memory consolidation).
+# Memory ledgers and reports prefer SISpace when present; else workspace root.
 MEMORY_ROOT=$ROOT
 if [ -d "$SISPACE_HOME/harness/memory" ]; then
   MEMORY_ROOT=$SISPACE_HOME

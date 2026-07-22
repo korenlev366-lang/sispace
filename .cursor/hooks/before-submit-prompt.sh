@@ -20,7 +20,7 @@ if printf '%s' "$input" | grep -Eqi \
   deny
 fi
 
-ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
+ROOT=$(HOOK_INPUT="$input" sh "$(dirname "$0")/lib/workspace-root.sh")
 export HARNESS_ROOT=$ROOT
 export HARNESS_AGENTS_MD=""
 if [ -f "$ROOT/AGENTS.md" ]; then

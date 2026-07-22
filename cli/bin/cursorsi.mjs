@@ -56,7 +56,7 @@ Usage:
   cursorsi setup            # hooks + harness + config into this project
   cursorsi                  # Start Ink TUI orchestrator
 
-  cursorsi setup [--force] [--sync-global] [--home-only] [TARGET_DIR]
+  cursorsi setup [--force] [--home-only] [--project [DIR]] [--sync-harness]
   cursorsi kanban           Launch SISpace desktop kanban
   cursorsi swarm <task-id> [--workers N]  Create gated swarm graph
   cursorsi handoff export|attach <session-id>

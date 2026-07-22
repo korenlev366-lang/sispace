@@ -40,7 +40,7 @@ function killSessionGroup(entry: { process: ChildProcess; pid: number | undefine
 }
 
 /** Iterate all active sessions and process-group-kill each one. */
-function cleanupAllBackgroundSessions(): void {
+export function cleanupAllBackgroundSessions(): void {
   for (const [, session] of activeBackgroundSessions) {
     killSessionGroup(session);
     try {

@@ -10,11 +10,13 @@ Terminal-native Cursor / OpenRouter agent (Ink TUI), published as [`cursorsi`](h
 
 ```bash
 npm install -g cursorsi --legacy-peer-deps
-cursorsi setup          # hooks, harness, generic AGENTS.md, ~/.cursorsi
+cursorsi setup          # global ~/.cursor hooks/skills (once per machine)
 cursorsi                # start TUI → /auth → /backend → /model
 ```
 
 Requires **Node ≥ 22.5**. Full docs: [cli/README.md](./cli/README.md).
+
+Optional per-repo scaffold: `cursorsi setup --project`
 
 Publish (maintainers): `cd cli && npx npm@10 publish --access public`  
 (`prepublishOnly` runs `sync:templates` + `tsc`; templates are genericized — no personal vault paths.)

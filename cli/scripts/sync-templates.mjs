@@ -103,47 +103,30 @@ lesson_search_globs:
 
 const GENERIC_INSTALL_MD = `# Harness Install
 
-Install cursorsi hooks, agents, commands, and harness scripts into a project.
+Install cursorsi hooks, agents, commands, and harness scripts.
 
-## Recommended
-
-From the project root:
+## Recommended (global — default)
 
 \`\`\`sh
-cursorsi setup
-cursorsi setup --force           # overwrite existing copies
-cursorsi setup --sync-global     # also refresh ~/.cursor-harness
+cursorsi setup                 # ~/.cursor hooks/skills + ~/.cursor-harness
+cursorsi setup --force         # overwrite
+cursorsi setup --sync-harness  # refresh harness scripts
 \`\`\`
 
-## Manual (from a cursorsi install / template tree)
+User hooks apply to **all** Cursor workspaces on this machine.
+
+## Optional per-project scaffold
+
+\`\`\`sh
+cursorsi setup --project              # cwd: AGENTS.md + local harness
+cursorsi setup --project /path/to/app
+\`\`\`
+
+## Manual (from a template tree)
 
 \`\`\`sh
 sh path/to/templates/harness/scripts/harness-install.sh
 sh path/to/templates/harness/scripts/harness-install.sh --force
-sh path/to/templates/harness/scripts/harness-install.sh --sync-global
-\`\`\`
-
-### Installed into the target project
-
-| Source | Destination |
-| --- | --- |
-| \`.cursor/hooks.json\` + \`.cursor/hooks/\` | Same |
-| \`.cursor/commands/\` | \`harness-*\` slash commands |
-| \`.cursor/agents/\` | Reflection, grading, workflow, checker agents |
-| \`.cursor/skills/harness-*\` | Skills |
-| \`harness/config/\` | Runtime policy |
-| \`harness/scripts/\` | Shell tools + compiled \`dist/\` |
-| \`harness/scaffold/\` | Empty ledgers/reports (skip if present) |
-
-### Canonical memory (optional)
-
-When \`SISPACE_HOME\` points at a harness memory tree (or \`~/sispace/harness/memory\` exists):
-
-- Ledgers/reports can live in that canonical store
-- Project hooks still run locally
-
-\`\`\`sh
-export SISPACE_HOME=/path/to/canonical-harness-home
 \`\`\`
 
 ### MCP
@@ -153,7 +136,7 @@ export SISPACE_HOME=/path/to/canonical-harness-home
 
 ## After install
 
-Restart Cursor (or start a new agent session) so hook changes load.
+Restart Cursor so global hooks reload.
 `;
 
 const GENERIC_OBSIDIAN_SYNC_MD = `# Obsidian sync (searchable index)

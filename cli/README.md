@@ -10,19 +10,18 @@ Terminal-native Cursor / OpenRouter agent (Ink TUI), with:
 
 ```bash
 npm install -g cursorsi --legacy-peer-deps
-# or one-shot:
-npx --yes cursorsi setup
+cursorsi setup          # once per machine → ~/.cursor hooks/skills
+cursorsi                # start TUI
 ```
 
 Requires **Node ≥ 22.5**. Use `--legacy-peer-deps` if npm complains about zod peer ranges (OpenRouter uses zod 4; optional openai peers want zod 3).
 
 ## First-time setup
 
-In the project you want to use:
-
 ```bash
-cursorsi setup          # hooks, harness, config, ~/.cursorsi
-cursorsi                # start TUI
+cursorsi setup                 # global: ~/.cursor + ~/.cursor-harness + ~/.cursorsi
+cursorsi setup --project       # optional: AGENTS.md + local harness in this repo
+cursorsi
 ```
 
 Inside the TUI:
@@ -34,24 +33,25 @@ Inside the TUI:
 Flags:
 
 ```bash
-cursorsi setup --force           # overwrite existing hook/config files
-cursorsi setup --sync-global     # also refresh ~/.cursor-harness
-cursorsi setup --home-only       # only create ~/.cursorsi + settings
-cursorsi setup /path/to/project
+cursorsi setup --force              # overwrite existing global files
+cursorsi setup --sync-harness       # refresh ~/.cursor-harness scripts
+cursorsi setup --home-only          # only ~/.cursorsi + settings
+cursorsi setup --project            # also scaffold cwd
+cursorsi setup --project /path/app  # scaffold a specific project
 ```
 
 ## What gets installed
 
-| Path | Purpose |
-|------|---------|
-| `cursorsi` (global bin) | TUI + CLI |
-| `cursorsi-ask-mcp` | ask_user MCP (also injected automatically for Cursor SDK turns) |
-| `~/.cursorsi/` | credentials (via `/auth`) |
-| `~/.config/cursorsi/` | settings (backend, model) |
-| `<project>/.cursor/` | Cursor IDE hooks / commands / agents / skills |
-| `<project>/harness/` | reflection chain + config |
-| `<project>/config/sispace.yaml` | models, ntfy, compaction defaults |
-| `<project>/.cursorsi/` | project memory + auto-skills |
+| Path | Purpose | When |
+|------|---------|------|
+| `cursorsi` (global bin) | TUI + CLI | `npm install -g` |
+| `cursorsi-ask-mcp` | ask_user MCP | `npm install -g` |
+| `~/.cursor/hooks.json` + `hooks/` | Cursor user hooks (all workspaces) | `cursorsi setup` |
+| `~/.cursor/skills/harness-*` | Global skills | `cursorsi setup` |
+| `~/.cursor-harness/` | Reflection chain scripts | `cursorsi setup` |
+| `~/.cursorsi/` | credentials (via `/auth`) | `cursorsi setup` |
+| `~/.config/cursorsi/` | settings (backend, model) | `cursorsi setup` |
+| `<project>/AGENTS.md`, `harness/`, … | Project scaffold | `cursorsi setup --project` |
 
 ## Publish (maintainers)
 
