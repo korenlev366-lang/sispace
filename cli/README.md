@@ -48,7 +48,7 @@ cursorsi setup --project /path/app  # scaffold a specific project
 | `cursorsi-ask-mcp` | ask_user MCP | `npm install -g` |
 | `~/.cursor/hooks.json` + `hooks/` | Cursor user hooks (all workspaces) | `cursorsi setup` |
 | `~/.cursor/skills/harness-*` | Global skills | `cursorsi setup` |
-| `~/.cursor-harness/` | Reflection chain scripts | `cursorsi setup` |
+| `~/.cursor-harness/` | Scripts + **global** `harness/memory` + `harness/reports` | `cursorsi setup` |
 | `~/.cursorsi/` | credentials (via `/auth`) | `cursorsi setup` |
 | `~/.config/cursorsi/` | settings (backend, model) | `cursorsi setup` |
 | `<project>/AGENTS.md`, `harness/`, … | Project scaffold | `cursorsi setup --project` |

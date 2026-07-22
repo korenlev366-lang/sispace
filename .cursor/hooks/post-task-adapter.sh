@@ -69,9 +69,11 @@ SISPACE_HOME=${SISPACE_HOME:-$HOME/sispace}
 HARNESS_HOME=${HARNESS_HOME:-$HOME/.cursor-harness}
 CHAIN_SCRIPT=$HARNESS_HOME/harness/scripts/dist/post-task-chain.js
 
-# Memory ledgers and reports prefer SISpace when present; else workspace root.
+# Prefer global cursorsi harness memory, then SISpace home, else workspace.
 MEMORY_ROOT=$ROOT
-if [ -d "$SISPACE_HOME/harness/memory" ]; then
+if [ -d "$HARNESS_HOME/harness/memory" ]; then
+  MEMORY_ROOT=$HARNESS_HOME
+elif [ -d "$SISPACE_HOME/harness/memory" ]; then
   MEMORY_ROOT=$SISPACE_HOME
 fi
 CHAIN_LOG=$MEMORY_ROOT/harness/reports/post-task-chain.log

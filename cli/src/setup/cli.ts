@@ -243,15 +243,22 @@ function installGlobalCursor(
     console.log(`  skills/harness-*: ${n} file(s) copied`);
   }
 
-  // Harness scripts home (post-task chain looks here first)
+  // Harness scripts + live global memory (post-task / reflect write here)
+  const memoryDir = join(harnessHome, "harness/memory");
+  const reportsDir = join(harnessHome, "harness/reports");
   const needHarness =
     syncHarness ||
     force ||
     !existsSync(join(harnessHome, "harness/scripts/dist/post-task-chain.js"));
+  const needMemory =
+    force ||
+    !existsSync(memoryDir) ||
+    !existsSync(join(memoryDir, "accepted-lessons.md"));
 
-  console.log(`\n› Harness scripts → ${harnessHome}`);
+  console.log(`\n› Harness home → ${harnessHome}`);
+  ensureDir(harnessHome);
+
   if (needHarness) {
-    ensureDir(harnessHome);
     copyTreeFiltered(
       join(templates, "harness/config"),
       join(harnessHome, "harness/config"),
@@ -289,7 +296,33 @@ function installGlobalCursor(
       }
     }
   } else {
-    console.log(`  skipped (already present; use --sync-harness or --force)`);
+    console.log(`  scripts: skipped (already present; use --sync-harness or --force)`);
+  }
+
+  // Always ensure live global memory/reports exist (seed from scaffold, never clobber unless --force)
+  if (needMemory || needHarness) {
+    const scaffoldMem = join(templates, "harness/scaffold/memory");
+    const scaffoldRep = join(templates, "harness/scaffold/reports");
+    const nMem = copyTreeFiltered(scaffoldMem, memoryDir, force);
+    const nRep = copyTreeFiltered(scaffoldRep, reportsDir, force);
+    writeFileSync(
+      join(memoryDir, "project-index.md"),
+      `# Global cursorsi harness memory
+
+Canonical memory/reports for this machine (created by \`cursorsi setup\`).
+
+- Root: \`${harnessHome}\`
+- Memory: \`harness/memory/\`
+- Reports: \`harness/reports/\`
+
+Hooks and reflection write here by default. Override with \`SISPACE_HOME\` if you use a SISpace checkout.
+`,
+      "utf8",
+    );
+    console.log(`  harness/memory: ${nMem} file(s) seeded`);
+    console.log(`  harness/reports: ${nRep} file(s) seeded`);
+  } else {
+    console.log(`  harness/memory: present (${memoryDir})`);
   }
 }
 
@@ -486,7 +519,7 @@ Done.
 
 Installed globally (all Cursor workspaces):
   ~/.cursor/hooks.json + hooks/ commands/ agents/ skills/harness-*
-  ~/.cursor-harness/   (post-task reflection scripts)
+  ~/.cursor-harness/   (scripts + harness/memory + harness/reports)
 
 Next:
   1. Restart Cursor IDE so global hooks reload

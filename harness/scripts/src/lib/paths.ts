@@ -35,12 +35,24 @@ export interface HarnessPaths {
   chainLog: string;
 }
 
-/** Canonical harness memory/reports root — defaults to SISpace regardless of hook cwd. */
+/** Canonical harness memory/reports root for reflection / post-task. */
 export function resolveSispaceMemoryRoot(projectRoot?: string): string {
   const fromEnv = process.env.SISPACE_HOME?.trim();
   if (fromEnv) {
     const resolved = path.resolve(fromEnv);
     if (fs.existsSync(path.join(resolved, "harness", "memory"))) return resolved;
+  }
+
+  const fromHarnessHome = process.env.HARNESS_HOME?.trim();
+  if (fromHarnessHome) {
+    const resolved = path.resolve(fromHarnessHome);
+    if (fs.existsSync(path.join(resolved, "harness", "memory"))) return resolved;
+  }
+
+  // Global cursorsi setup seeds ~/.cursor-harness/harness/memory
+  const cursorHarness = path.join(os.homedir(), ".cursor-harness");
+  if (fs.existsSync(path.join(cursorHarness, "harness", "memory"))) {
+    return path.resolve(cursorHarness);
   }
 
   for (const candidate of [path.join(os.homedir(), "sispace")]) {
