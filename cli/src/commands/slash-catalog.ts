@@ -66,8 +66,8 @@ export const SLASH_COMMAND_DESCRIPTIONS: Record<SlashCommandName, string> = {
   resume: "Resume a saved chat by task id",
   search: "FTS task/session search (shared DB)",
   settings: "Show or change user settings (persistent ~/.config/cursorsi/settings.json)",
-  "subagent-model": "Choose pipeline subagent model (excludes orchestrator)",
-  subagents: "Toggle pipeline subagent decomposition (on/off)",
+  subagents: "Toggle pipeline subagents for all backends (on/off)",
+  "subagent-model": "Choose pipeline subagent model (defaults to session model)",
   swarm: "Show swarm graph for linked task",
   "test-ask": "Open QuestionPicker (smoke-test ask UI)",
 };

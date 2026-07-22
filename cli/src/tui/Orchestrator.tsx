@@ -2103,6 +2103,32 @@ export function Orchestrator({
           // ── tool / side-channel lines ──────────────────────────────
           if (line.startsWith("› ")) {
             const desc = line.slice(2);
+            // Subagent pipeline status
+            if (
+              /\[\d+ (planned|working|done|failed)\]/.test(desc) ||
+              desc.startsWith("── subagents") ||
+              desc.startsWith("[subagents:")
+            ) {
+              const isWorking = /\[\d+ working\]/.test(desc);
+              const isDone = /\[\d+ done\]/.test(desc);
+              const isFailed = /\[\d+ failed\]/.test(desc);
+              const color = isFailed
+                ? "#d8a657"
+                : isDone
+                  ? "#89b482"
+                  : isWorking
+                    ? "#d8a657"
+                    : "#928d80";
+              return (
+                <Text key={key} wrap="wrap">
+                  <Text>  </Text>
+                  <Text dimColor color="#5b574d">
+                    ›{" "}
+                  </Text>
+                  <Text color={color}>{desc}</Text>
+                </Text>
+              );
+            }
             // Check for edit summaries: "✓" (checkmark) in muted green
             if (desc.startsWith("✓")) {
               const rest = desc.slice(1);

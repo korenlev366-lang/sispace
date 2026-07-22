@@ -595,36 +595,72 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
       }
     }
 
-    // ── Pipeline subagent planning ────────────────────────────────────
+    // ── Pipeline subagents (all backends share this gate+plan+execute flow) ──
+    let pipelineContext = "";
     if (callbacks?.subagentsEnabled) {
       try {
-        const [{ shouldDecompose }, { planSubtasks }] = await Promise.all([
-          import("../subagents/gate.js"),
-          import("../subagents/planner.js"),
-        ]);
-        if (shouldDecompose(userText)) {
-          const subtasks = await planSubtasks(
-            userText,
-            this.getOpenAIClient(),
-          );
-          if (subtasks.length > 0) {
-            const lines = [`› [plan] ${subtasks.length} subtasks:`];
-            for (let i = 0; i < subtasks.length; i++) {
-              const t = subtasks[i];
-              let line = `${i}. ${t.description} (${t.type}, ${t.effort})`;
-              if (t.depends_on.length > 0) {
-                line += ` depends_on=[${t.depends_on.join(", ")}]`;
-              }
-              lines.push(line);
+        const {
+          runPipelineSubagents,
+          prependPipelineContext,
+        } = await import("../subagents/runner.js");
+        const subModel =
+          callbacks.subagentModel?.trim() || this.model;
+        const pipeline = await runPipelineSubagents({
+          userMessage: userText,
+          model: subModel,
+          planClient: this.getOpenAIClient(),
+          onStatus: callbacks.onStatus,
+          signal: callbacks.signal,
+          executeSubtask: async (subtask, index, prior) => {
+            const child = new OpenRouterAgent({
+              apiKey: this.apiKey,
+              model: subModel,
+              cwd: this.cwd,
+              agentsMd: this.agentsMd,
+              enableTools: this.enableTools,
+              name: `subagent-${index}`,
+            });
+            try {
+              const priorBlock =
+                prior.length === 0
+                  ? ""
+                  : [
+                      "Prior subagent results:",
+                      ...prior.map(
+                        (p) =>
+                          `[${p.index}] ${p.description}:\n${p.result.slice(0, 2000)}`,
+                      ),
+                      "",
+                    ].join("\n");
+              const prompt = [
+                `You are pipeline subagent #${index} (${subtask.type}, effort ${subtask.effort}).`,
+                "Complete ONLY this subtask. Be concise in the final answer.",
+                "",
+                priorBlock,
+                `## Subtask`,
+                subtask.description,
+              ].join("\n");
+              const r = await child.runTurn(prompt, undefined, {
+                signal: callbacks.signal,
+                onStatus: callbacks.onStatus,
+              });
+              return r.result?.trim() || "(no result)";
+            } finally {
+              child.close();
             }
-            for (const ln of lines) {
-              callbacks?.onStatus?.(ln);
-            }
+          },
+        });
+        if (pipeline.ran && pipeline.contextBlock) {
+          pipelineContext = pipeline.contextBlock;
+          userText = prependPipelineContext(userText, pipelineContext);
+          if (typeof payload === "string") {
+            payload = userText;
+          } else {
+            payload = { ...payload, text: userText };
           }
         }
       } catch (err) {
-        console.warn("[cursorsi] subagent planning failed:", err);
-        // Planning failure is non-fatal — continue with normal execution
+        console.warn("[cursorsi] subagent pipeline failed:", err);
       }
     }
 
@@ -700,7 +736,7 @@ export class OpenRouterAgent implements SDKAgent, BackendAgent {
 
       // Retry wrapper for transient OpenRouter provider drops
       const MAX_RETRIES = 2;
-      let result!: Awaited<ReturnType<typeof this.client.callModel>>;
+      let result!: Awaited<ReturnType<OpenRouter["callModel"]>>;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
           result = await this.client.callModel({

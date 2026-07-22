@@ -146,7 +146,7 @@ export function formatCursorToolActivity(
       case "updateTodos":
         return phase === "started" ? "Todos" : "✓ Todos";
       case "task":
-        return phase === "started" ? "Task" : "✓ Task";
+        return phase === "started" ? "Subagent" : "✓ Subagent";
       case "createPlan":
         return phase === "started" ? "Plan" : "✓ Plan";
       default:
@@ -156,7 +156,12 @@ export function formatCursorToolActivity(
 
   let detail = "";
   if (type === "shell") detail = trunc(command || "(command)", 80);
-  else if (path) detail = trunc(path);
+  else if (type === "task") {
+    detail = trunc(
+      String(args.description ?? args.prompt ?? path ?? query),
+      56,
+    );
+  } else if (path) detail = trunc(path);
   else if (query) detail = trunc(query);
   else if (type === "mcp") {
     detail = trunc(

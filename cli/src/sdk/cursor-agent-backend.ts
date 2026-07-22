@@ -173,10 +173,27 @@ export class CursorAgent implements BackendAgent {
   readonly agentId: string;
   private handle: CursorAgentHandle;
   private closed = false;
+  private readonly modelId: string;
+  private readonly modelParams?: Array<{ id: string; value: string }>;
+  private readonly apiKey: string;
+  private readonly cwd: string;
 
-  private constructor(agentId: string, handle: CursorAgentHandle) {
+  private constructor(
+    agentId: string,
+    handle: CursorAgentHandle,
+    meta: {
+      modelId: string;
+      modelParams?: Array<{ id: string; value: string }>;
+      apiKey: string;
+      cwd: string;
+    },
+  ) {
     this.agentId = agentId;
     this.handle = handle;
+    this.modelId = meta.modelId;
+    this.modelParams = meta.modelParams;
+    this.apiKey = meta.apiKey;
+    this.cwd = meta.cwd;
   }
 
   /**
@@ -191,9 +208,14 @@ export class CursorAgent implements BackendAgent {
     cwd: string;
     name?: string;
     agentId?: string;
+    /** When true, register custom agents that inherit/use the parent model. */
+    enablePipelineAgents?: boolean;
   }): Promise<CursorAgent> {
     const sdk = await getCursorSdk();
     const { buildCursorAskUserMcpServers } = await import("./cursor-ask-mcp.js");
+    const { buildCursorPipelineAgents } = await import(
+      "../subagents/cursor-agents.js"
+    );
     const createOpts = {
       model: {
         id: opts.model.id,
@@ -203,6 +225,10 @@ export class CursorAgent implements BackendAgent {
       local: { cwd: opts.cwd },
       // Native AskQuestion is not offered in local SDK runs — MCP ask_user instead.
       mcpServers: buildCursorAskUserMcpServers(),
+      // Prefer parent model for Task/subagents (avoids composer-2.5-fast default).
+      ...(opts.enablePipelineAgents !== false
+        ? { agents: buildCursorPipelineAgents(opts.model.id) }
+        : {}),
       ...(opts.name ? { name: opts.name } : {}),
     } as CursorAgentCreateOptions;
 
@@ -221,7 +247,12 @@ export class CursorAgent implements BackendAgent {
 
     // Prefer the SDK's real agentId so later resume/cache keys match Cursor storage.
     const agentId = handle.agentId?.trim() || opts.agentId?.trim() || randomUUID();
-    return new CursorAgent(agentId, handle);
+    return new CursorAgent(agentId, handle, {
+      modelId: opts.model.id,
+      modelParams: opts.model.params,
+      apiKey: opts.apiKey,
+      cwd: opts.cwd,
+    });
   }
 
   close(): void {
@@ -240,6 +271,108 @@ export class CursorAgent implements BackendAgent {
   ): Promise<RunResult> {
     if (this.closed) {
       throw new Error("agent closed");
+    }
+
+    const subModel =
+      callbacks?.subagentModel?.trim() || this.modelId || "auto";
+
+    // Pipeline subagents before the main Cursor turn.
+    if (callbacks?.subagentsEnabled) {
+      try {
+        const {
+          runPipelineSubagents,
+          prependPipelineContext,
+        } = await import("../subagents/runner.js");
+        const { cursorSubagentModelHint } = await import(
+          "../subagents/cursor-agents.js"
+        );
+        const { planSubtasksFromText } = await import(
+          "../subagents/cursor-plan.js"
+        );
+
+        const userText =
+          typeof payload === "string" ? payload : payload.text;
+
+        const pipeline = await runPipelineSubagents({
+          userMessage: userText,
+          model: subModel,
+          planWith: (msg) =>
+            planSubtasksFromText({
+              userMessage: msg,
+              modelId: subModel,
+              modelParams: this.modelParams,
+              apiKey: this.apiKey,
+              cwd: this.cwd,
+              signal: callbacks.signal,
+            }),
+          onStatus: callbacks.onStatus,
+          signal: callbacks.signal,
+          executeSubtask: async (subtask, index, prior) => {
+            const child = await CursorAgent.create({
+              model: {
+                id: subModel,
+                params: this.modelParams,
+              },
+              apiKey: this.apiKey,
+              cwd: this.cwd,
+              name: `cursorsi-sub-${index}`,
+              enablePipelineAgents: true,
+            });
+            try {
+              const priorBlock =
+                prior.length === 0
+                  ? ""
+                  : [
+                      "Prior subagent results:",
+                      ...prior.map(
+                        (p) =>
+                          `[${p.index}] ${p.description}:\n${p.result.slice(0, 2000)}`,
+                      ),
+                      "",
+                    ].join("\n");
+              const prompt = [
+                cursorSubagentModelHint(subModel),
+                "",
+                `You are pipeline subagent #${index} (${subtask.type}).`,
+                "Complete ONLY this subtask. Be concise in the final answer.",
+                "",
+                priorBlock,
+                "## Subtask",
+                subtask.description,
+              ].join("\n");
+              const r = await child.runTurn(prompt, undefined, {
+                signal: callbacks.signal,
+                onStatus: callbacks.onStatus,
+              });
+              return r.result?.trim() || "(no result)";
+            } finally {
+              child.close();
+            }
+          },
+        });
+
+        if (pipeline.ran && pipeline.contextBlock) {
+          const hint = cursorSubagentModelHint(subModel);
+          const next = prependPipelineContext(
+            `${hint}\n\n${userText}`,
+            pipeline.contextBlock,
+          );
+          payload =
+            typeof payload === "string"
+              ? next
+              : { ...payload, text: next };
+        } else {
+          // Still inject model policy so native Task tool uses session model.
+          const hint = cursorSubagentModelHint(subModel);
+          if (typeof payload === "string") {
+            payload = `${hint}\n\n${payload}`;
+          } else {
+            payload = { ...payload, text: `${hint}\n\n${payload.text}` };
+          }
+        }
+      } catch (err) {
+        console.warn("[cursorsi] cursor subagent pipeline failed:", err);
+      }
     }
 
     // Cursor SDK accepts string or { text, images } — do not drop attachments.

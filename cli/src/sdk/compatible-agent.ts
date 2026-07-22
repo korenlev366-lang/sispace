@@ -154,6 +154,7 @@ export class CompatibleAgent implements BackendAgent {
     }
 
     try {
+      payload = await this.maybeRunSubagentPipeline(payload, callbacks);
       if (this.api === "anthropic") {
         return await this.runAnthropicTurn(payload, runId, callbacks);
       }
@@ -161,6 +162,75 @@ export class CompatibleAgent implements BackendAgent {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { id: runId, status: "error", result: msg };
+    }
+  }
+
+  private async maybeRunSubagentPipeline(
+    payload: SendPayload,
+    callbacks?: RunTurnCallbacks,
+  ): Promise<SendPayload> {
+    if (!callbacks?.subagentsEnabled) return payload;
+    const userText = payloadText(payload);
+    try {
+      const {
+        runPipelineSubagents,
+        prependPipelineContext,
+      } = await import("../subagents/runner.js");
+      const subModel = callbacks.subagentModel?.trim() || this.model;
+      const pipeline = await runPipelineSubagents({
+        userMessage: userText,
+        model: subModel,
+        planClient: this.getOpenAI(),
+        onStatus: callbacks.onStatus,
+        signal: callbacks.signal,
+        executeSubtask: async (subtask, index, prior) => {
+          const child = new CompatibleAgent({
+            endpoint: this.endpoint,
+            apiKey: this.apiKey,
+            model: subModel,
+            api: this.api,
+            cwd: this.cwd,
+            agentsMd: this.agentsMd,
+            enableTools: this.enableTools,
+            agentId: undefined,
+          });
+          try {
+            const priorBlock =
+              prior.length === 0
+                ? ""
+                : [
+                    "Prior subagent results:",
+                    ...prior.map(
+                      (p) =>
+                        `[${p.index}] ${p.description}:\n${p.result.slice(0, 2000)}`,
+                    ),
+                    "",
+                  ].join("\n");
+            const prompt = [
+              `You are pipeline subagent #${index} (${subtask.type}, effort ${subtask.effort}).`,
+              "Complete ONLY this subtask. Be concise in the final answer.",
+              "",
+              priorBlock,
+              "## Subtask",
+              subtask.description,
+            ].join("\n");
+            const r = await child.runTurn(prompt, undefined, {
+              signal: callbacks.signal,
+              onStatus: callbacks.onStatus,
+            });
+            return r.result?.trim() || "(no result)";
+          } finally {
+            child.close();
+          }
+        },
+      });
+      if (!pipeline.ran || !pipeline.contextBlock) return payload;
+      const next = prependPipelineContext(userText, pipeline.contextBlock);
+      if (typeof payload === "string") return next;
+      return { ...payload, text: next };
+    } catch (err) {
+      console.warn("[cursorsi] compatible subagent pipeline failed:", err);
+      return payload;
     }
   }
 

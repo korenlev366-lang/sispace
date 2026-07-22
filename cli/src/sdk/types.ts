@@ -3,8 +3,13 @@
 export interface RunTurnCallbacks {
   onChunk?: (delta: string, fullText: string) => void;
   onStatus?: (line: string) => void;
-  /** If true, gate + plan subtasks via Flash before the main turn. */
+  /** If true, gate + plan + execute pipeline subagents before the main turn. */
   subagentsEnabled?: boolean;
+  /**
+   * Model for pipeline planning/execution (and Cursor Task spawn hint).
+   * Defaults to the backend agent's own model when omitted.
+   */
+  subagentModel?: string;
   /** Abort in-flight turn (Ctrl+C cancel). */
   signal?: AbortSignal;
 }

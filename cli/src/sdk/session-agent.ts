@@ -521,8 +521,12 @@ export async function sendSessionMessage(
           if (signal?.aborted) return;
           onStatusLine?.(line);
         },
-        subagentsEnabled: session.subagentsEnabled,
-        signal,
+      subagentsEnabled: session.subagentsEnabled,
+      subagentModel:
+        session.subagentModelId?.trim() ||
+        session.modelId?.trim() ||
+        undefined,
+      signal,
       });
 
       // On Ctrl+C: do NOT close the agent handle here. Closing races SDK

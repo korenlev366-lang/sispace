@@ -16,6 +16,10 @@ import {
 } from "../skills/bundles.js";
 import { loadObsidianYaml } from "../obsidian/config.js";
 import { loadUserSettings, saveUserSettings, userSettingsPath } from "../config/user-settings.js";
+import {
+  supportsSubagents,
+  subagentsUnsupportedMessage,
+} from "../subagents/supports.js";
 import { DEFAULT_MODEL } from "../config/models.js";
 import { CURSOR_DEFAULT_MODEL_ID } from "../models/catalog.js";
 import { fetchLessonContextForQuery } from "../obsidian/recall.js";
@@ -362,11 +366,22 @@ async function handleHarnessCompress(
 function handleSubagents(ctx: SlashContext, rest: string): SlashResult {
   const sub = rest.trim().toLowerCase();
   const enabled = ctx.session.subagentsEnabled ?? false;
+  const settings = loadUserSettings();
 
   if (sub === "on") {
+    if (!supportsSubagents(settings.backend)) {
+      return {
+        ok: false,
+        message: subagentsUnsupportedMessage(settings.backend),
+      };
+    }
+    const model =
+      ctx.session.subagentModelId?.trim() ||
+      ctx.session.modelId?.trim() ||
+      "(session model)";
     return {
       ok: true,
-      message: "subagents: on",
+      message: `subagents: on · model ${model}`,
       sessionPatch: { subagentsEnabled: true },
     };
   }
@@ -383,9 +398,15 @@ function handleSubagents(ctx: SlashContext, rest: string): SlashResult {
     return { ok: false, message: "Usage: /subagents | /subagents on | /subagents off" };
   }
 
+  const model =
+    ctx.session.subagentModelId?.trim() ||
+    ctx.session.modelId?.trim() ||
+    "(session model)";
   return {
     ok: true,
-    message: enabled ? "subagents: on" : "subagents: off",
+    message: enabled
+      ? `subagents: on · model ${model} · backend ${settings.backend}`
+      : `subagents: off · backend ${settings.backend}`,
   };
 }
 
@@ -669,7 +690,7 @@ async function handleDoctor(ctx: SlashContext): Promise<SlashResult> {
   lines.push(`  session id:    ${ctx.session.id}`);
   lines.push(`  model id:      ${ctx.session.modelId ?? "(unset)"}`);
   lines.push(`  createdAt:     ${ctx.session.createdAt}`);
-  lines.push(`  subagents:     ${ctx.session.subagentsEnabled ?? false}`);
+  lines.push(`  subagents:     ${ctx.session.subagentsEnabled ?? false} (model ${ctx.session.subagentModelId?.trim() || ctx.session.modelId?.trim() || "session"})`);
   for (const line of lines) {
     ctx.pushLine(line);
   }
