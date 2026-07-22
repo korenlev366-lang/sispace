@@ -262,19 +262,61 @@ export class CursorAgent implements BackendAgent {
     try {
       let accumulated = "";
       let toolCallCount = 0;
+      let completedFallbackCount = 0;
+      const startedCallIds = new Set<string>();
+      const { formatCursorToolActivity } = await import(
+        "../lib/tool-activity.js"
+      );
 
       const sendOpts = {
-        onDelta: ({ update }: { update: { type: string; text?: string } }) => {
+        onDelta: ({
+          update,
+        }: {
+          update: {
+            type: string;
+            text?: string;
+            callId?: string;
+            toolCall?: {
+              type?: string;
+              args?: Record<string, unknown>;
+              result?: {
+                status?: string;
+                value?: Record<string, unknown>;
+                error?: unknown;
+              };
+            };
+          };
+        }) => {
           if (update.type === "text-delta" && update.text != null) {
             accumulated += update.text;
             callbacks?.onChunk?.(update.text, accumulated);
+            return;
           }
-          // Count completed tool calls when the SDK surfaces them.
-          if (
+
+          const isStarted =
+            update.type === "tool-call-started" ||
+            update.type === "tool_call_started";
+          const isCompleted =
             update.type === "tool-call-completed" ||
-            update.type === "tool_call_completed"
-          ) {
-            toolCallCount += 1;
+            update.type === "tool_call_completed";
+
+          if (isStarted) {
+            const id = update.callId ?? `anon-${toolCallCount}`;
+            if (!startedCallIds.has(id)) {
+              startedCallIds.add(id);
+              toolCallCount += 1;
+            }
+            const line = formatCursorToolActivity("started", update.toolCall);
+            if (line) callbacks?.onStatus?.(line);
+            return;
+          }
+
+          if (isCompleted) {
+            if (startedCallIds.size === 0) {
+              completedFallbackCount += 1;
+            }
+            const line = formatCursorToolActivity("completed", update.toolCall);
+            if (line) callbacks?.onStatus?.(line);
           }
         },
       };
@@ -355,7 +397,8 @@ export class CursorAgent implements BackendAgent {
         result: result.result ?? accumulated,
         promptTokens: undefined,
         completionTokens: undefined,
-        toolCallCount,
+        toolCallCount:
+          toolCallCount > 0 ? toolCallCount : completedFallbackCount,
       };
     } catch (err) {
       if (signal?.aborted) {

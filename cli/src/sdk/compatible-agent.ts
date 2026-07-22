@@ -264,7 +264,6 @@ export class CompatibleAgent implements BackendAgent {
         } catch {
           args = {};
         }
-        callbacks?.onStatus?.(`› ${tc.name}`);
         const result = toolCtx
           ? await runNamedTool(tc.name, args, toolCtx)
           : `Tool ${tc.name} unavailable (no cwd)`;
@@ -417,7 +416,6 @@ export class CompatibleAgent implements BackendAgent {
 
       const toolResults: AnthropicContent[] = [];
       for (const tu of toolUses) {
-        callbacks?.onStatus?.(`› ${tu.name}`);
         const result = toolCtx
           ? await runNamedTool(tu.name, tu.input, toolCtx)
           : `Tool ${tu.name} unavailable (no cwd)`;

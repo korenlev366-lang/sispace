@@ -181,6 +181,10 @@ export async function executeTool(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<string> {
+  const { emitToolStatus, formatLocalToolStart, formatLocalToolDone } =
+    await import("./tool-activity.js");
+  emitToolStatus(formatLocalToolStart(name, args));
+
   try {
     let raw: string;
     let readFilePath: string | undefined;
@@ -432,14 +436,28 @@ export async function executeTool(
         raw = lines.length > 0 ? lines.join("") : `[No new stream output available for background session: ${id}]`;
         break;
       }
-      default:
-        return `Unknown tool: ${name}`;
+      default: {
+        const unknown = `Unknown tool: ${name}`;
+        const doneUnknown = formatLocalToolDone(name, args, unknown);
+        if (doneUnknown) emitToolStatus(doneUnknown);
+        return unknown;
+      }
     }
 
     // ── Stage 2: compress tool output before it enters history ──────────
-    return compressToolOutput(name, raw, { keywords: ctx.keywords, filePath: readFilePath });
+    const compressed = compressToolOutput(name, raw, {
+      keywords: ctx.keywords,
+      filePath: readFilePath,
+    });
+    const done = formatLocalToolDone(name, args, raw);
+    if (done) emitToolStatus(done);
+    return compressed;
   } catch (err) {
-    return err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error ? err.message : String(err);
+    const doneErr = formatLocalToolDone(name, args, `Error: ${message}`);
+    if (doneErr) emitToolStatus(doneErr);
+    else emitToolStatus(`› ✓ ${name} failed`);
+    return message;
   }
 }
 

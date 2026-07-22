@@ -505,102 +505,111 @@ export async function sendSessionMessage(
         : resolved.text;
 
     let full = "";
-    const turnPromise = agent.runTurn(payload, undefined, {
-      onChunk: (_delta, accumulated) => {
-        if (signal?.aborted) return;
-        full = accumulated;
-        onTextDelta(full);
-      },
-      onStatus: (line) => {
-        if (signal?.aborted) return;
-        onStatusLine?.(line);
-      },
-      subagentsEnabled: session.subagentsEnabled,
-      signal,
+    const { setToolStatusEmitter } = await import("../lib/tool-activity.js");
+    setToolStatusEmitter((line) => {
+      if (signal?.aborted) return;
+      onStatusLine?.(line);
     });
-
-    // On Ctrl+C: do NOT close the agent handle here. Closing races SDK
-    // run.cancel() and leaves active_run_id stuck RUNNING in Cursor's
-    // local index.db → next send fails with "already has active run".
-    // Let runTurn await cancel; only tear down shell helpers on abort.
-    const result: RunResult = await new Promise((resolve, reject) => {
-      let settled = false;
-      const finish = (value: RunResult) => {
-        if (settled) return;
-        settled = true;
-        signal?.removeEventListener("abort", onAbortSideEffects);
-        resolve(value);
-      };
-      const onAbortSideEffects = () => {
-        cleanupAllBackgroundSessions();
-      };
-      if (signal?.aborted) {
-        onAbortSideEffects();
-        finish({
-          id: `cancel_${Date.now().toString(36)}`,
-          status: "error",
-          result: "Cancelled",
-        });
-        return;
-      }
-      signal?.addEventListener("abort", onAbortSideEffects, { once: true });
-      turnPromise.then(
-        (r) => {
-          finish(r);
+    try {
+      const turnPromise = agent.runTurn(payload, undefined, {
+        onChunk: (_delta, accumulated) => {
+          if (signal?.aborted) return;
+          full = accumulated;
+          onTextDelta(full);
         },
-        (err) => {
-          if (signal?.aborted) {
-            finish({
-              id: `cancel_${Date.now().toString(36)}`,
-              status: "error",
-              result: "Cancelled",
-            });
-            return;
-          }
+        onStatus: (line) => {
+          if (signal?.aborted) return;
+          onStatusLine?.(line);
+        },
+        subagentsEnabled: session.subagentsEnabled,
+        signal,
+      });
+
+      // On Ctrl+C: do NOT close the agent handle here. Closing races SDK
+      // run.cancel() and leaves active_run_id stuck RUNNING in Cursor's
+      // local index.db → next send fails with "already has active run".
+      // Let runTurn await cancel; only tear down shell helpers on abort.
+      const result: RunResult = await new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (value: RunResult) => {
+          if (settled) return;
+          settled = true;
           signal?.removeEventListener("abort", onAbortSideEffects);
-          reject(err);
-        },
-      );
-    });
+          resolve(value);
+        };
+        const onAbortSideEffects = () => {
+          cleanupAllBackgroundSessions();
+        };
+        if (signal?.aborted) {
+          onAbortSideEffects();
+          finish({
+            id: `cancel_${Date.now().toString(36)}`,
+            status: "error",
+            result: "Cancelled",
+          });
+          return;
+        }
+        signal?.addEventListener("abort", onAbortSideEffects, { once: true });
+        turnPromise.then(
+          (r) => {
+            finish(r);
+          },
+          (err) => {
+            if (signal?.aborted) {
+              finish({
+                id: `cancel_${Date.now().toString(36)}`,
+                status: "error",
+                result: "Cancelled",
+              });
+              return;
+            }
+            signal?.removeEventListener("abort", onAbortSideEffects);
+            reject(err);
+          },
+        );
+      });
 
-    if (signal?.aborted || result.result === "Cancelled") {
-      // Keep agent cached — cancel should have cleared active_run_id.
-      return {
-        ok: false,
-        text: full.trim(),
-        error: "Cancelled",
-        cancelled: true,
-        agentId: agent.agentId,
+      if (signal?.aborted || result.result === "Cancelled") {
+        // Keep agent cached — cancel should have cleared active_run_id.
+        return {
+          ok: false,
+          text: full.trim(),
+          error: "Cancelled",
+          cancelled: true,
+          agentId: agent.agentId,
+        };
+      }
+
+      const text = result.result?.trim() || full.trim();
+      const imageHint = resolved.images.length > 0 ? " (image attachment)" : "";
+      const turnTools = result.toolCallCount ?? 0;
+      const sessionPatch: Partial<CliSession> = {
+        ...(composePatch ?? {}),
+        ...(turnTools > 0
+          ? { toolCallCount: (resolvedSession.toolCallCount ?? 0) + turnTools }
+          : {}),
       };
+      return {
+        ok: result.status !== "error",
+        text: text || "(empty response)",
+        agentId: agent.agentId,
+        modelId:
+          resolvedSession.modelId !== session.modelId
+            ? resolvedSession.modelId
+            : undefined,
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        obsidianLessonCount: result.obsidianLessonCount,
+        toolCallCount: turnTools,
+        ...(Object.keys(sessionPatch).length > 0 ? { sessionPatch } : {}),
+        error:
+          result.status === "error"
+            ? `${result.result?.trim() || "LLM request failed"}${imageHint}`
+            : undefined,
+      };
+    } finally {
+      setToolStatusEmitter(null);
     }
-
-    const text = result.result?.trim() || full.trim();
-    const imageHint = resolved.images.length > 0 ? " (image attachment)" : "";
-    const turnTools = result.toolCallCount ?? 0;
-    const sessionPatch: Partial<CliSession> = {
-      ...(composePatch ?? {}),
-      ...(turnTools > 0
-        ? { toolCallCount: (resolvedSession.toolCallCount ?? 0) + turnTools }
-        : {}),
-    };
-    return {
-      ok: result.status !== "error",
-      text: text || "(empty response)",
-      agentId: agent.agentId,
-      modelId:
-        resolvedSession.modelId !== session.modelId
-          ? resolvedSession.modelId
-          : undefined,
-      promptTokens: result.promptTokens,
-      completionTokens: result.completionTokens,
-      obsidianLessonCount: result.obsidianLessonCount,
-      toolCallCount: turnTools,
-      ...(Object.keys(sessionPatch).length > 0 ? { sessionPatch } : {}),
-      error:
-        result.status === "error"
-          ? `${result.result?.trim() || "LLM request failed"}${imageHint}`
-          : undefined,
-    };
   } catch (err) {
     if (signal?.aborted) {
       closeSessionAgent(session.id);

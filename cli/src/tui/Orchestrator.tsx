@@ -793,7 +793,6 @@ export function Orchestrator({
         streamTextRef.current = "";
         clearAgentStreamFlush();
         toolCallCountRef.current = 0;
-        const toolStatusBuffer: string[] = [];
 
         const result = await sendSessionMessage({
           session: turnSession,
@@ -809,27 +808,31 @@ export function Orchestrator({
             );
           },
           onStatusLine: (line) => {
-            // Buffer tool call status lines; show only a summary after the turn.
+            // Live Cursor-CLI-style tool activity (edits, shell, reads, …).
             if (line.startsWith("›")) {
-              toolStatusBuffer.push(line);
-              // Count tool-call start lines (not checkmark result lines)
+              pushLine(line);
+              // Count start lines (not ✓ completion lines)
               if (line.startsWith("› ") && !line.startsWith("› ✓")) {
                 toolCallCountRef.current += 1;
                 const n = toolCallCountRef.current;
+                const detail = line.slice(2).trim();
                 setBusyUi((prev) =>
                   prev
                     ? {
                         ...prev,
                         label: "Running tools",
-                        detail: `${n} tool${n === 1 ? "" : "s"}`,
+                        detail:
+                          detail.length > 48
+                            ? `${detail.slice(0, 47)}…`
+                            : detail || `${n} tool${n === 1 ? "" : "s"}`,
                       }
                     : prev,
                 );
               }
-            } else {
-              // Pass through non-tool lines (e.g. warnings starting with "!")
-              pushLine(line);
+              return;
             }
+            // Pass through non-tool lines (warnings, headroom, reasoning, …)
+            pushLine(line);
           },
         });
 
@@ -843,10 +846,15 @@ export function Orchestrator({
           break;
         }
 
-        // Emit a single summary line for tool calls instead of per-call lines
-        const toolCount = toolCallCountRef.current;
-        if (toolCount > 0) {
-          pushLine(`› [${toolCount} tool call${toolCount !== 1 ? "s" : ""} completed]`);
+        // Prefer API-reported tool count when status lines were sparse.
+        const toolCount = Math.max(
+          toolCallCountRef.current,
+          result.toolCallCount ?? 0,
+        );
+        if (toolCount > 0 && toolCallCountRef.current === 0) {
+          pushLine(
+            `› [${toolCount} tool call${toolCount !== 1 ? "s" : ""} completed]`,
+          );
         }
 
         // Show per-turn Obsidian lesson count
