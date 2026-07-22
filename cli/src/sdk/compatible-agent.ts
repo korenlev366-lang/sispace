@@ -26,7 +26,7 @@ import type { CompatibleApiStyle } from "../config/credentials.js";
 
 type SendPayload = string | { text: string; images: SDKImage[] };
 
-const MAX_TOOL_ROUNDS = 24;
+const MAX_TOOL_ROUNDS = 70;
 
 function payloadText(payload: SendPayload): string {
   if (typeof payload === "string") return payload;

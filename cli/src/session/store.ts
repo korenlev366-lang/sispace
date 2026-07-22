@@ -125,3 +125,23 @@ export function replaceLastLine(
   });
   return { ...state, sessions };
 }
+
+/** Replace a line at a specific index in the active session. */
+export function replaceLineAtIndex(
+  state: SessionState,
+  index: number,
+  line: string,
+): SessionState {
+  const sessions = state.sessions.map((s) => {
+    if (s.id !== state.activeId) {
+      return s;
+    }
+    if (index < 0 || index >= s.lines.length) {
+      return s;
+    }
+    const lines = [...s.lines];
+    lines[index] = line;
+    return { ...s, lines };
+  });
+  return { ...state, sessions };
+}

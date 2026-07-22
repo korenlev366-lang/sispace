@@ -22,7 +22,7 @@ import {
   getActiveSession,
   patchSession,
   removeSession,
-  replaceLastLine,
+  replaceLineAtIndex,
   switchSession,
 } from "../session/store.js";
 import type { CliSession, SessionState } from "../session/types.js";
@@ -215,6 +215,8 @@ export function Orchestrator({
   const streamFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  /** Index of the "agent> …" placeholder line in active.lines (-1 = none). */
+  const agentLineIndexRef = useRef(-1);
   const toolCallCountRef = useRef(0);
 
   const active = getActiveSession(sessionState);
@@ -527,8 +529,10 @@ export function Orchestrator({
 
   const flushAgentStreamLine = useCallback(() => {
     const text = streamTextRef.current;
+    const idx = agentLineIndexRef.current;
+    if (idx < 0) return;
     setSessionState((prev) =>
-      replaceLastLine(prev, `agent> ${text || "…"}`),
+      replaceLineAtIndex(prev, idx, `agent> ${text || "…"}`),
     );
   }, []);
 
@@ -778,6 +782,10 @@ export function Orchestrator({
           let next = appendLine(prev, `you> ${preview}`);
           return appendLine(next, "agent> …");
         });
+        // Capture the index of the "agent> …" placeholder so streaming
+        // replaces it even when tool status lines are appended after it.
+        const agentLineIdx = active.lines.length;
+        agentLineIndexRef.current = agentLineIdx;
 
         const turnSession: CliSession = {
           ...workingSession,
@@ -839,7 +847,7 @@ export function Orchestrator({
         if (result.cancelled || abort.signal.aborted) {
           clearAgentStreamFlush();
           setSessionState((prev) =>
-            replaceLastLine(prev, "agent> (cancelled)"),
+            replaceLineAtIndex(prev, agentLineIndexRef.current, "agent> (cancelled)"),
           );
           pushLine("› Cancelled — send another message or Ctrl+C twice to quit");
           await paneBridgeRef.current.stepDone(1, 1, "error");
@@ -943,8 +951,9 @@ export function Orchestrator({
         if (!result.ok) {
           await paneBridgeRef.current.stepDone(1, 1, "error");
           setSessionState((prev) =>
-            replaceLastLine(
+            replaceLineAtIndex(
               prev,
+              agentLineIndexRef.current,
               `! agent error: ${result.error ?? "unknown"}`,
             ),
           );
@@ -952,8 +961,9 @@ export function Orchestrator({
         }
 
         setSessionState((prev) =>
-          replaceLastLine(
+          replaceLineAtIndex(
             prev,
+            agentLineIndexRef.current,
             `agent> ${result.text || "(empty response)"}`,
           ),
         );

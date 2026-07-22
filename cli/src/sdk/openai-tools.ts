@@ -32,18 +32,48 @@ export interface AnthropicToolDef {
   input_schema: Record<string, unknown>;
 }
 
-function asNamedTools(
-  tools: readonly unknown[],
-): NamedTool[] {
-  return tools.filter(
-    (t): t is NamedTool =>
-      Boolean(
-        t &&
-          typeof t === "object" &&
-          typeof (t as NamedTool).name === "string" &&
-          (t as NamedTool).inputSchema,
-      ),
-  );
+/**
+ * Normalize tool defs from `@openrouter/agent`'s `tool()`.
+ *
+ * Current shape (0.7+):
+ *   { type: "function", function: { name, description, inputSchema, execute } }
+ * Legacy flat shape (still accepted):
+ *   { name, description?, inputSchema }
+ *
+ * CompatibleAgent previously only recognized the flat shape, so after the
+ * openrouter package nested fields under `function`, `openaiToolsForObsidian`
+ * returned [] and local models (e.g. qwen3.6-27b) got no `tools` payload —
+ * they then faked bash/read in markdown instead of emitting tool_calls.
+ */
+function asNamedTools(tools: readonly unknown[]): NamedTool[] {
+  const out: NamedTool[] = [];
+  for (const t of tools) {
+    if (!t || typeof t !== "object") continue;
+    const rec = t as Record<string, unknown>;
+
+    // New @openrouter/agent nested OpenAI-style wrapper
+    if (rec.type === "function" && rec.function && typeof rec.function === "object") {
+      const fn = rec.function as Record<string, unknown>;
+      if (typeof fn.name === "string" && fn.inputSchema) {
+        out.push({
+          name: fn.name,
+          description: typeof fn.description === "string" ? fn.description : undefined,
+          inputSchema: fn.inputSchema as z.ZodObject<z.ZodRawShape>,
+        });
+        continue;
+      }
+    }
+
+    // Legacy flat shape
+    if (typeof rec.name === "string" && rec.inputSchema) {
+      out.push({
+        name: rec.name,
+        description: typeof rec.description === "string" ? rec.description : undefined,
+        inputSchema: rec.inputSchema as z.ZodObject<z.ZodRawShape>,
+      });
+    }
+  }
+  return out;
 }
 
 function schemaToJson(schema: z.ZodObject<z.ZodRawShape>): Record<string, unknown> {
